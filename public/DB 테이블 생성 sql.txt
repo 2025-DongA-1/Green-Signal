@@ -1,0 +1,573 @@
+-- ─────────────────────────────────────────────────────────────
+-- 0) DB 생성/선택
+-- ─────────────────────────────────────────────────────────────
+CREATE DATABASE IF NOT EXISTS app_db CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci; -- DB 생성
+USE app_db; -- DB 선택
+
+-- ─────────────────────────────────────────────────────────────
+-- 1) users 테이블 생성 (필수 조건 반영)
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS users ( -- 사용자 테이블
+  user_id INT NOT NULL AUTO_INCREMENT, -- 사용자_ID (PK)
+  provider VARCHAR(20) NULL, -- 소셜 제공자 (NULL 가능)
+  social_id VARCHAR(100) NULL, -- 소셜 UID (NULL 가능)
+  email VARCHAR(250) NOT NULL, -- 메일 (필수)
+  password VARCHAR(250) NOT NULL, -- 비밀번호 (필수)
+  nickname VARCHAR(50) NOT NULL, -- 닉네임 (필수)
+  role VARCHAR(20) NOT NULL DEFAULT 'user', -- 권한 (기본 user)
+  is_active TINYINT NOT NULL DEFAULT 1, -- 사용 여부 (tinyint) ※ tinyunt 오타 주의
+  refresh_token TEXT NULL, -- 토큰
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, -- 가입시간
+
+  PRIMARY KEY (user_id), -- PK
+  UNIQUE KEY uk_users_email (email), -- email UK
+  UNIQUE KEY uk_users_provider_social (provider, social_id), -- 소셜 중복 방지(둘 다 있을 때만 의미)
+  KEY idx_users_provider (provider), -- 조회 인덱스
+  KEY idx_users_social_id (social_id) -- 조회 인덱스
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_0900_ai_ci; -- 설정
+
+
+
+-- ─────────────────────────────────────────────────────────────
+-- 2)테이블명: products
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS products ( -- 제품(가공식품/축산 등) 기본정보
+  report_no VARCHAR(30) NOT NULL, -- 품목보고번호 (PK)
+  product_gb VARCHAR(20) NOT NULL, -- 축산/식품구분 (idx 권장)
+  product_name VARCHAR(255) NOT NULL, -- 제품명 (idx 권장)
+  raw_materials_text TEXT NULL, -- 원재료(원문)
+  allergy_text TEXT NULL, -- 알레르기유발물질(원문)
+  nutrient_text TEXT NULL, -- 영양성분(원문)
+  kind_name VARCHAR(100) NULL, -- 유형명 (idx 권장)
+  kind_state VARCHAR(50) NULL, -- 유형의상태
+  manufacturer VARCHAR(255) NULL, -- 제조원
+  seller VARCHAR(255) NULL, -- 판매원
+  capacity VARCHAR(100) NULL, -- 용량
+  collected_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, -- 수집시간 (기본값 now 권장)
+
+  PRIMARY KEY (report_no) -- PK 설정
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+
+-- ─────────────────────────────────────────────────────────────
+-- 인덱스 추천 (요청 반영)
+-- ─────────────────────────────────────────────────────────────
+CREATE INDEX idx_products_name ON products (product_name); -- 제품명 검색용
+CREATE INDEX idx_products_kind ON products (kind_name); -- 유형명 필터/집계용
+CREATE INDEX idx_products_gb ON products (product_gb); -- 구분 필터/집계용
+
+
+-- ─────────────────────────────────────────────────────────────
+-- 3)테이블명: product_barcodes
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS product_barcodes ( -- 제품 바코드 매핑
+  barcode VARCHAR(30) NOT NULL, -- 바코드 (PK)
+  report_no VARCHAR(30) NOT NULL, -- 품목보고번호 (FK)
+  is_primary TINYINT NOT NULL DEFAULT 0, -- 대표 여부 (default 0)
+  collected_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, -- 수집시간 (now 권장)
+
+  PRIMARY KEY (barcode), -- PK 설정
+  CONSTRAINT fk_product_barcodes_report_no -- FK 이름
+    FOREIGN KEY (report_no) -- FK 컬럼
+    REFERENCES products (report_no) -- 참조
+    ON UPDATE CASCADE -- report_no 변경 시 반영
+    ON DELETE RESTRICT -- 제품 삭제 시 바코드가 있으면 삭제 제한
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+
+-- ─────────────────────────────────────────────────────────────
+-- 인덱스
+-- ─────────────────────────────────────────────────────────────
+CREATE INDEX idx_barcodes_report_no ON product_barcodes (report_no); -- report_no 조회용
+
+
+-- ─────────────────────────────────────────────────────────────
+-- 4) product_ingredients (제품원재료 파싱 결과)
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS product_ingredients ( -- 제품 원재료(파싱 결과)
+  report_no VARCHAR(30) NOT NULL, -- 품목보고번호 (PK/FK)
+  seq INT NOT NULL, -- 순서 (PK)
+  ingredient_name VARCHAR(255) NOT NULL, -- 원재료명 (idx)
+  raw_token TEXT NULL, -- 원문토큰
+  collected_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, -- 수집시간 (now 권장)
+
+  PRIMARY KEY (report_no, seq), -- 복합 PK
+  CONSTRAINT fk_product_ingredients_report_no -- FK 이름
+    FOREIGN KEY (report_no) -- FK 컬럼
+    REFERENCES products (report_no) -- 참조
+    ON UPDATE CASCADE -- report_no 변경 시 반영
+    ON DELETE CASCADE -- 제품 삭제 시 원재료도 함께 삭제
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+
+-- ─────────────────────────────────────────────────────────────
+-- 인덱스
+-- ─────────────────────────────────────────────────────────────
+CREATE INDEX idx_ingredients_name ON product_ingredients (ingredient_name); -- 재료명 검색용
+CREATE INDEX idx_ingredients_report_seq ON product_ingredients (report_no, seq); -- 정렬/범위 조회용(요청 반영)
+
+
+
+-- ─────────────────────────────────────────────────────────────
+-- 5) allergens (알러지 물질 마스터)
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS allergens ( -- 알러지 물질 마스터
+  allergen_id INT NOT NULL AUTO_INCREMENT, -- 알러지 id (PK, auto inc)
+  allergen_name VARCHAR(100) NOT NULL, -- 알러지 물질 명 (unique)
+  synonyms TEXT NULL, -- 동의어목록
+  description TEXT NULL, -- 설명
+  collected_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, -- 수집시간 (now 권장)
+
+  PRIMARY KEY (allergen_id), -- PK
+  UNIQUE KEY uk_allergens_name (allergen_name) -- unique
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- 6) product_allergens (제품 알레르기 파싱 결과)
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS product_allergens ( -- 제품 알레르기(파싱 결과)
+  report_no VARCHAR(30) NOT NULL, -- 품목보고번호 (PK/FK)
+  seq INT NOT NULL, -- 순서 (PK)
+  allergen_id INT NOT NULL, -- 알러지 id (FK)
+  raw_token TEXT NULL, -- 원문토큰
+  collected_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, -- 수집시간 (now 권장)
+
+  PRIMARY KEY (report_no, seq), -- 복합 PK
+
+  CONSTRAINT fk_product_allergens_report_no -- FK: 제품
+    FOREIGN KEY (report_no)
+    REFERENCES products (report_no)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE, -- 제품 삭제 시 파싱결과도 삭제
+
+  CONSTRAINT fk_product_allergens_allergen_id -- FK: 알러지 마스터
+    FOREIGN KEY (allergen_id)
+    REFERENCES allergens (allergen_id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT -- 알러지 마스터는 참조 중이면 삭제 제한
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+
+-- ─────────────────────────────────────────────────────────────
+-- 인덱스 (요청 반영)
+-- ─────────────────────────────────────────────────────────────
+CREATE INDEX idx_product_allergens_allergen ON product_allergens (allergen_id); -- 알러지 기준 조회
+CREATE INDEX idx_product_allergens_report ON product_allergens (report_no); -- 제품 기준 조회
+
+
+-- ─────────────────────────────────────────────────────────────
+-- 7) diseases (병증 마스터)
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS diseases ( -- 병증 마스터
+  disease_id INT NOT NULL AUTO_INCREMENT, -- 병증 id (PK, auto inc)
+  disease_name VARCHAR(100) NOT NULL, -- 병증 명 (unique)
+  description TEXT NULL, -- 설명
+
+  PRIMARY KEY (disease_id), -- PK
+  UNIQUE KEY uk_diseases_name (disease_name) -- unique
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- 8) user_diseases (유저 병증)
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS user_diseases ( -- 유저-병증 매핑
+  user_id INT NOT NULL, -- 사용자id (PK/FK)
+  disease_id INT NOT NULL, -- 병증 id (PK/FK)
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, -- 생성/수집시간 (now 권장)
+
+  PRIMARY KEY (user_id, disease_id), -- 복합 PK (중복 등록 방지)
+
+  CONSTRAINT fk_user_diseases_user_id -- FK: users
+    FOREIGN KEY (user_id)
+    REFERENCES users (user_id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE, -- 유저 삭제 시 매핑도 삭제
+
+  CONSTRAINT fk_user_diseases_disease_id -- FK: diseases
+    FOREIGN KEY (disease_id)
+    REFERENCES diseases (disease_id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT -- 병증 마스터는 참조 중이면 삭제 제한
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- 9) user_allergens (유저 알레르기)
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS user_allergens ( -- 유저-알러지 매핑
+  user_id INT NOT NULL, -- 사용자id (PK/FK)
+  allergen_id INT NOT NULL, -- 알러지 id (PK/FK)
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, -- 생성/수집시간 (now 권장)
+
+  PRIMARY KEY (user_id, allergen_id), -- 복합 PK (중복 등록 방지)
+
+  CONSTRAINT fk_user_allergens_user_id -- FK: users
+    FOREIGN KEY (user_id)
+    REFERENCES users (user_id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE, -- 유저 삭제 시 매핑도 삭제
+
+  CONSTRAINT fk_user_allergens_allergen_id -- FK: allergens
+    FOREIGN KEY (allergen_id)
+    REFERENCES allergens (allergen_id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT -- 알러지 마스터는 참조 중이면 삭제 제한
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- 10) sweeteners (감미료 마스터: 식약청 22종)
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS sweeteners ( -- 감미료 마스터
+  sweetener_id INT NOT NULL AUTO_INCREMENT, -- 감미료 id (PK, auto inc)
+  sweetener_name VARCHAR(100) NOT NULL, -- 감미료명 (unique)
+  synonyms TEXT NULL, -- 동의어목록
+  glycemic_impact VARCHAR(10) NOT NULL DEFAULT 'NEUTRAL', -- 혈당영향 (예: UP2/UP/NEUTRAL/DOWN)
+  collected_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, -- 수집시간 (now 권장)
+
+  PRIMARY KEY (sweetener_id), -- PK
+  UNIQUE KEY uk_sweeteners_name (sweetener_name) -- unique
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+
+-- ─────────────────────────────────────────────────────────────
+-- 11) product_sweeteners (제품 감미료: 제품원재료에서 검출)
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS product_sweeteners ( -- 제품 감미료(검출 결과)
+  report_no VARCHAR(30) NOT NULL, -- 품목보고번호 (PK/FK)
+  seq INT NOT NULL, -- 순서 (PK)
+  sweetener_id INT NOT NULL, -- 감미료 id (FK)
+  raw_token TEXT NULL, -- 원문토큰
+  collected_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, -- 수집시간 (now 권장)
+
+  PRIMARY KEY (report_no, seq), -- 복합 PK
+
+  CONSTRAINT fk_product_sweeteners_report_no -- FK: products
+    FOREIGN KEY (report_no)
+    REFERENCES products (report_no)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE, -- 제품 삭제 시 검출 결과도 삭제
+
+  CONSTRAINT fk_product_sweeteners_sweetener_id -- FK: sweeteners
+    FOREIGN KEY (sweetener_id)
+    REFERENCES sweeteners (sweetener_id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT -- 감미료 마스터는 참조 중이면 삭제 제한
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+
+-- ─────────────────────────────────────────────────────────────
+-- 인덱스 (요청 반영)
+-- ─────────────────────────────────────────────────────────────
+CREATE INDEX idx_product_sweeteners_sid ON product_sweeteners (sweetener_id); -- 감미료 기준 조회
+CREATE INDEX idx_product_sweeteners_report ON product_sweeteners (report_no); -- 제품 기준 조회
+
+
+-- ─────────────────────────────────────────────────────────────
+-- 12) sweetener_disease_rules (감미료_병증_규칙)
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS sweetener_disease_rules ( -- 감미료-병증 규칙
+  rule_id INT NOT NULL AUTO_INCREMENT, -- 규칙ID (PK, auto inc)
+  sweetener_id INT NOT NULL, -- 감미료ID (FK)
+  disease_id INT NOT NULL, -- 병증ID (FK)
+  restriction_level VARCHAR(20) NOT NULL, -- 제한등급 (CONTRA/WARN/CAUTION/INFO)
+  message VARCHAR(500) NOT NULL, -- 표시문구
+  evidence_note TEXT NULL, -- 근거메모
+  is_active TINYINT NOT NULL DEFAULT 1, -- 활성여부(옵션)
+
+  PRIMARY KEY (rule_id), -- PK
+
+  CONSTRAINT fk_sdr_sweetener_id -- FK: sweeteners
+    FOREIGN KEY (sweetener_id)
+    REFERENCES sweeteners (sweetener_id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT, -- 마스터 참조 중 삭제 제한
+
+  CONSTRAINT fk_sdr_disease_id -- FK: diseases
+    FOREIGN KEY (disease_id)
+    REFERENCES diseases (disease_id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT, -- 마스터 참조 중 삭제 제한
+
+  UNIQUE KEY uniq_rule (sweetener_id, disease_id) -- 규칙 중복 방지(요청 반영)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- 13) warning_cache (경고 결과 캐시)
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS warning_cache ( -- 유저-제품 경고 결과 캐시
+  user_id INT NOT NULL, -- 사용자id (PK/FK)
+  report_no VARCHAR(30) NOT NULL, -- 품목보고번호 (PK/FK)
+  warning_level VARCHAR(20) NOT NULL, -- 경고등급 (예: OK/INFO/CAUTION/WARN/CONTRA)
+  computed_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, -- 수집시간(계산시간) (now 권장)
+
+  PRIMARY KEY (user_id, report_no), -- 복합 PK(유저-제품 1건 캐시)
+
+  CONSTRAINT fk_warning_cache_user_id -- FK: users
+    FOREIGN KEY (user_id)
+    REFERENCES users (user_id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE, -- 유저 삭제 시 캐시도 삭제
+
+  CONSTRAINT fk_warning_cache_report_no -- FK: products
+    FOREIGN KEY (report_no)
+    REFERENCES products (report_no)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE -- 제품 삭제 시 캐시도 삭제
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- 14) favorites (즐겨찾기)
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS favorites ( -- 유저-제품 즐겨찾기
+  user_id INT NOT NULL, -- 사용자id (PK/FK)
+  report_no VARCHAR(30) NOT NULL, -- 품목보고번호 (PK/FK)
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, -- 수집시간(생성시간) (now 권장)
+
+  PRIMARY KEY (user_id, report_no), -- 복합 PK(중복 즐겨찾기 방지)
+
+  CONSTRAINT fk_favorites_user_id -- FK: users
+    FOREIGN KEY (user_id)
+    REFERENCES users (user_id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE, -- 유저 삭제 시 즐겨찾기도 삭제
+
+  CONSTRAINT fk_favorites_report_no -- FK: products
+    FOREIGN KEY (report_no)
+    REFERENCES products (report_no)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE -- 제품 삭제 시 즐겨찾기도 삭제
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+
+
+-- ─────────────────────────────────────────────────────────────
+-- 15) scan_history (스캔 이력)
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS scan_history ( -- 바코드 스캔 이력
+  scan_id BIGINT NOT NULL AUTO_INCREMENT, -- 스캔ID (PK, auto inc)
+  user_id INT NOT NULL, -- 사용자id (FK)
+  barcode VARCHAR(30) NULL, -- 바코드
+  report_no VARCHAR(30) NULL, -- 품목보고번호 (FK 가능하면)
+  product_name_snapshot VARCHAR(255) NULL, -- 제품명(스냅샷): 당시 표시용
+  warning_level_snapshot VARCHAR(20) NULL, -- 경고등급(스냅샷): 당시 결과 저장
+  scanned_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, -- 스캔시간 (idx 추천)
+
+  PRIMARY KEY (scan_id), -- PK
+
+  CONSTRAINT fk_scan_history_user_id -- FK: users
+    FOREIGN KEY (user_id)
+    REFERENCES users (user_id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE, -- 유저 삭제 시 스캔 이력도 삭제
+
+  CONSTRAINT fk_scan_history_report_no -- FK: products (선택적)
+    FOREIGN KEY (report_no)
+    REFERENCES products (report_no)
+    ON UPDATE CASCADE
+    ON DELETE SET NULL -- 제품 삭제 시 이력은 남기고 report_no만 NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+
+-- ─────────────────────────────────────────────────────────────
+-- 인덱스 (요청 반영)
+-- ─────────────────────────────────────────────────────────────
+CREATE INDEX idx_scan_history_scanned_at ON scan_history (scanned_at); -- 시간순 조회
+CREATE INDEX idx_scan_history_user_scanned_at ON scan_history (user_id, scanned_at); -- 유저별 최근 스캔 조회
+CREATE INDEX idx_scan_history_barcode ON scan_history (barcode); -- 바코드로 조회(선택)
+CREATE INDEX idx_scan_history_report_no ON scan_histor_
+
+
+-- ─────────────────────────────────────────────────────────────
+-- nutrition_facts_raw (영양소 원본 적재용: 값은 전부 문자열로 저장)
+-- ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS nutrition_facts_raw (
+  report_no VARCHAR(30) NOT NULL,                -- 품목보고번호
+  num VARCHAR(30) NOT NULL,                      -- 번호(문자열로도 옴 -> 문자열로 저장)
+
+  food_cd VARCHAR(50) NULL,                      -- 식품코드
+  serving_size VARCHAR(50) NULL,                 -- 기준량 (예: 100mL)
+
+  amt_num1  VARCHAR(50) NULL,  -- 에너지(kcal)
+  amt_num2  VARCHAR(50) NULL,  -- 수분(g)
+  amt_num3  VARCHAR(50) NULL,  -- 단백질(g)
+  amt_num4  VARCHAR(50) NULL,  -- 지방(g)
+  amt_num5  VARCHAR(50) NULL,  -- 회분(g)
+  amt_num6  VARCHAR(50) NULL,  -- 탄수화물(g)
+  amt_num7  VARCHAR(50) NULL,  -- 당류(g)
+  amt_num8  VARCHAR(50) NULL,  -- 식이섬유(g)
+  amt_num9  VARCHAR(50) NULL,  -- 칼슘(mg)
+  amt_num10 VARCHAR(50) NULL,  -- 철(mg)
+  amt_num11 VARCHAR(50) NULL,  -- 인(mg)
+  amt_num12 VARCHAR(50) NULL,  -- 칼륨(mg)
+  amt_num13 VARCHAR(50) NULL,  -- 나트륨(mg)
+  amt_num14 VARCHAR(50) NULL,
+  amt_num15 VARCHAR(50) NULL,
+  amt_num16 VARCHAR(50) NULL,
+  amt_num17 VARCHAR(50) NULL,
+  amt_num18 VARCHAR(50) NULL,
+  amt_num19 VARCHAR(50) NULL,
+  amt_num20 VARCHAR(50) NULL,
+  amt_num21 VARCHAR(50) NULL,
+  amt_num22 VARCHAR(50) NULL,
+  amt_num23 VARCHAR(50) NULL,
+  amt_num24 VARCHAR(50) NULL,
+  amt_num25 VARCHAR(50) NULL,
+  amt_num26 VARCHAR(50) NULL,
+  amt_num27 VARCHAR(50) NULL,
+  amt_num28 VARCHAR(50) NULL,
+  amt_num29 VARCHAR(50) NULL,
+  amt_num30 VARCHAR(50) NULL,
+  amt_num31 VARCHAR(50) NULL,
+  amt_num32 VARCHAR(50) NULL,
+  amt_num33 VARCHAR(50) NULL,
+  amt_num34 VARCHAR(50) NULL,
+  amt_num35 VARCHAR(50) NULL,
+  amt_num36 VARCHAR(50) NULL,
+  amt_num37 VARCHAR(50) NULL,
+  amt_num38 VARCHAR(50) NULL,
+  amt_num39 VARCHAR(50) NULL,
+  amt_num40 VARCHAR(50) NULL,
+  amt_num41 VARCHAR(50) NULL,
+  amt_num42 VARCHAR(50) NULL,
+  amt_num43 VARCHAR(50) NULL,
+  amt_num44 VARCHAR(50) NULL,
+  amt_num45 VARCHAR(50) NULL,
+  amt_num46 VARCHAR(50) NULL,
+  amt_num47 VARCHAR(50) NULL,
+  amt_num48 VARCHAR(50) NULL,
+  amt_num49 VARCHAR(50) NULL,
+  amt_num50 VARCHAR(50) NULL,
+  amt_num51 VARCHAR(50) NULL,
+  amt_num52 VARCHAR(50) NULL,
+  amt_num53 VARCHAR(50) NULL,
+  amt_num54 VARCHAR(50) NULL,
+  amt_num55 VARCHAR(50) NULL,
+  amt_num56 VARCHAR(50) NULL,
+  amt_num57 VARCHAR(50) NULL,
+  amt_num58 VARCHAR(50) NULL,
+  amt_num59 VARCHAR(50) NULL,
+  amt_num60 VARCHAR(50) NULL,
+  amt_num61 VARCHAR(50) NULL,
+  amt_num62 VARCHAR(50) NULL,
+  amt_num63 VARCHAR(50) NULL,
+  amt_num64 VARCHAR(50) NULL,
+  amt_num65 VARCHAR(50) NULL,
+  amt_num66 VARCHAR(50) NULL,
+  amt_num67 VARCHAR(50) NULL,
+  amt_num68 VARCHAR(50) NULL,
+  amt_num69 VARCHAR(50) NULL,
+  amt_num70 VARCHAR(50) NULL,
+  amt_num71 VARCHAR(50) NULL,
+  amt_num72 VARCHAR(50) NULL,
+  amt_num73 VARCHAR(50) NULL,
+  amt_num74 VARCHAR(50) NULL,
+  amt_num75 VARCHAR(50) NULL,
+  amt_num76 VARCHAR(50) NULL,
+  amt_num77 VARCHAR(50) NULL,
+  amt_num78 VARCHAR(50) NULL,
+  amt_num79 VARCHAR(50) NULL,
+  amt_num80 VARCHAR(50) NULL,
+  amt_num81 VARCHAR(50) NULL,
+  amt_num82 VARCHAR(50) NULL,
+  amt_num83 VARCHAR(50) NULL,
+  amt_num84 VARCHAR(50) NULL,
+  amt_num85 VARCHAR(50) NULL,
+  amt_num86 VARCHAR(50) NULL,
+  amt_num87 VARCHAR(50) NULL,
+  amt_num88 VARCHAR(50) NULL,
+  amt_num89 VARCHAR(50) NULL,
+  amt_num90 VARCHAR(50) NULL,
+  amt_num91 VARCHAR(50) NULL,
+  amt_num92 VARCHAR(50) NULL,
+  amt_num93 VARCHAR(50) NULL,
+  amt_num94 VARCHAR(50) NULL,
+  amt_num95 VARCHAR(50) NULL,
+  amt_num96 VARCHAR(50) NULL,
+  amt_num97 VARCHAR(50) NULL,
+  amt_num98 VARCHAR(50) NULL,
+  amt_num99 VARCHAR(50) NULL,
+  amt_num100 VARCHAR(50) NULL,
+  amt_num101 VARCHAR(50) NULL,
+  amt_num102 VARCHAR(50) NULL,
+  amt_num103 VARCHAR(50) NULL,
+  amt_num104 VARCHAR(50) NULL,
+  amt_num105 VARCHAR(50) NULL,
+  amt_num106 VARCHAR(50) NULL,
+  amt_num107 VARCHAR(50) NULL,
+  amt_num108 VARCHAR(50) NULL,
+  amt_num109 VARCHAR(50) NULL,
+  amt_num110 VARCHAR(50) NULL,
+  amt_num111 VARCHAR(50) NULL,
+  amt_num112 VARCHAR(50) NULL,
+  amt_num113 VARCHAR(50) NULL,
+  amt_num114 VARCHAR(50) NULL,
+  amt_num115 VARCHAR(50) NULL,
+  amt_num116 VARCHAR(50) NULL,
+  amt_num117 VARCHAR(50) NULL,
+  amt_num118 VARCHAR(50) NULL,
+  amt_num119 VARCHAR(50) NULL,
+  amt_num120 VARCHAR(50) NULL,
+  amt_num121 VARCHAR(50) NULL,
+  amt_num122 VARCHAR(50) NULL,
+  amt_num123 VARCHAR(50) NULL,
+  amt_num124 VARCHAR(50) NULL,
+  amt_num125 VARCHAR(50) NULL,
+  amt_num126 VARCHAR(50) NULL,
+  amt_num127 VARCHAR(50) NULL,
+  amt_num128 VARCHAR(50) NULL,
+  amt_num129 VARCHAR(50) NULL,
+  amt_num130 VARCHAR(50) NULL,
+  amt_num131 VARCHAR(50) NULL,
+  amt_num132 VARCHAR(50) NULL,
+  amt_num133 VARCHAR(50) NULL,
+  amt_num134 VARCHAR(50) NULL,
+  amt_num135 VARCHAR(50) NULL,
+  amt_num136 VARCHAR(50) NULL,
+  amt_num137 VARCHAR(50) NULL,
+  amt_num138 VARCHAR(50) NULL,
+  amt_num139 VARCHAR(50) NULL,
+  amt_num140 VARCHAR(50) NULL,
+  amt_num141 VARCHAR(50) NULL,
+  amt_num142 VARCHAR(50) NULL,
+  amt_num143 VARCHAR(50) NULL,
+  amt_num144 VARCHAR(50) NULL,
+  amt_num145 VARCHAR(50) NULL,
+  amt_num146 VARCHAR(50) NULL,
+  amt_num147 VARCHAR(50) NULL,
+  amt_num148 VARCHAR(50) NULL,
+  amt_num149 VARCHAR(50) NULL,
+  amt_num150 VARCHAR(50) NULL,
+  amt_num151 VARCHAR(50) NULL,
+  amt_num152 VARCHAR(50) NULL,
+  amt_num153 VARCHAR(50) NULL,
+  amt_num154 VARCHAR(50) NULL,
+  amt_num155 VARCHAR(50) NULL,
+  amt_num156 VARCHAR(50) NULL,
+  amt_num157 VARCHAR(50) NULL,
+
+  sub_ref_cm VARCHAR(30) NULL,                   -- 출처코드 (예: 70)
+  sub_ref_name VARCHAR(200) NULL,                -- 출처명 (예: 식품의약품안전처)
+
+  nutri_amount_serving VARCHAR(50) NULL,         -- 1회 섭취참고량 (예: 200ml)
+  z10500 VARCHAR(50) NULL,                       -- 식품중량 (예: 355.000mL)
+  dish_one_serving VARCHAR(50) NULL,             -- 1회분량 참고량 (단위 섞일 수 있음)
+
+  item_report_no VARCHAR(30) NULL,               -- 품목제조보고번호(문자)
+  imp_yn VARCHAR(10) NULL,                       -- 수입여부 (예: N)
+  nation_cm VARCHAR(10) NULL,                    -- 원산지국코드
+  nation_nm VARCHAR(100) NULL,                   -- 원산지국명
+
+  research_ymd VARCHAR(20) NULL,                 -- 데이터생성일자 (예: 2021-06-30 문자열)
+  update_date VARCHAR(20) NULL,                  -- 데이터수정일자 (예: 2025-01-23 문자열)
+
+  collected_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, -- 수집일자
+
+  PRIMARY KEY (report_no, num),
+
+  CONSTRAINT fk_nutrition_facts_raw_report_no
+    FOREIGN KEY (report_no)
+    REFERENCES products (report_no)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+
+-- 인덱스(선택)
+CREATE INDEX idx_nf_raw_food_cd ON nutrition_facts_raw (food_cd);
+CREATE INDEX idx_nf_raw_update_date ON nutrition_facts_raw (update_date);

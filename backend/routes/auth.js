@@ -66,19 +66,31 @@ router.post("/login", async (req, res) => {
 // ✅ 비밀번호 찾기
 router.post("/forgot", async (req, res) => {
   const { email } = req.body;
+
   try {
+    if (!email) return res.status(400).json({ message: "이메일을 입력하세요." });
+
     const [user] = await db.query("SELECT * FROM users WHERE email = ?", [email]);
     if (!user.length)
       return res.status(404).json({ message: "사용자를 찾을 수 없습니다." });
 
     const tempPw = Math.random().toString(36).slice(-8);
-    await db.query("UPDATE users SET password=? WHERE email=?", [tempPw, email]);
 
+    // ✅ 네이버 SMTP (앱 비밀번호 사용)
     const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: { user: process.env.MAIL_USER, pass: process.env.MAIL_PASS },
+      host: "smtp.naver.com",
+      port: 465,
+      secure: true,
+      auth: {
+        user: process.env.MAIL_USER, // 예: hoony6837@naver.com
+        pass: process.env.MAIL_PASS, // 네이버 애플리케이션 비밀번호(12자리)
+      },
     });
 
+    // (선택) 설정/인증 확인용 - 문제 생기면 여기서 바로 에러남
+    await transporter.verify();
+
+    // ✅ 메일 먼저 보내고(성공하면) 비번 업데이트 (실패했는데 비번만 바뀌는 사고 방지)
     await transporter.sendMail({
       from: process.env.MAIL_USER,
       to: email,
@@ -86,10 +98,12 @@ router.post("/forgot", async (req, res) => {
       text: `임시 비밀번호는 ${tempPw} 입니다. 로그인 후 비밀번호를 변경하세요.`,
     });
 
+    await db.query("UPDATE users SET password=? WHERE email=?", [tempPw, email]);
+
     res.json({ message: "임시 비밀번호가 이메일로 전송되었습니다." });
   } catch (err) {
     console.error("비밀번호 찾기 오류:", err);
-    res.status(500).json({ message: "메일 전송 실패" });
+    res.status(500).json({ message: "메일 전송 실패", error: err.message });
   }
 });
 

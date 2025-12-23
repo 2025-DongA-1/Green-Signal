@@ -1,0 +1,50 @@
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  width: 320px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.input-field {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.btn-blue {
+  width: 100%;
+  background-color: #2563eb;
+  color: white;
+  padding: 8px;
+  margin-top: 5px;
+  border-radius: 4px;
+}
+
+.btn-white {
+  width: 100%;
+  background-color: white;
+  border: 1px solid #ddd;
+  padding: 8px;
+  margin-top: 5px;
+  border-radius: 4px;
+}
+
+.btn-yellow {
+  width: 100%;
+  background-color: #fcd34d;
+  padding: 8px;
+  margin-top: 5px;
+  border-radius: 4px;
+}

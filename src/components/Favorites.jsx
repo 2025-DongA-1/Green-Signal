@@ -3,19 +3,29 @@ import { useNavigate } from 'react-router-dom';
 import './Favorites.css';
 
 const Favorites = ({ favorites = [], onRemove }) => {
+    // ----------------------------------------------------------------
+    // [변수 설명]
+    // favorites: App.jsx(부모)로부터 받아온 즐겨찾기 목록 데이터
+    // onRemove: 즐겨찾기 삭제 버튼 클릭 시 실행될 부모 컴포넌트의 함수
+    // filter: 현재 선택된 등급 필터 ('전체', '안전', '주의' 등)
+    // ----------------------------------------------------------------
     const [filter, setFilter] = useState('전체');
     const navigate = useNavigate();
 
-    // 필터링 적용
+    // [기능: 필터링 로직]
+    // 사용자가 선택한 필터에 맞춰 목록을 가공하여 렌더링 준비를 합니다.
     const filteredFavorites = filter === '전체'
         ? favorites
         : favorites.filter(item => {
+            // grade_text 필드가 없을 경우를 대비해 빈 문자열 처리
             const statusText = item.grade_text || item.gradeText || '';
-            return statusText.includes(filter);
+            return statusText.includes(filter); // 등급 텍스트에 필터어가 포함되는지 확인
         });
 
-    // 상세 페이지 이동
+    // [기능: 상세 페이지 이동]
+    // 카드를 클릭했을 때 해당 상품의 상세 정보 화면으로 넘어갑니다.
     const handleDetailClick = (item) => {
+        // DB 컬럼명 호환성 처리 (report_no 우선 사용)
         const productId = item.report_no || item.prdlstReportNo;
         if (!productId) return;
         navigate('/product', { state: { productId } });
@@ -46,7 +56,15 @@ const Favorites = ({ favorites = [], onRemove }) => {
                         <div key={item.report_no || index} className="favorite-card" onClick={() => handleDetailClick(item)} style={{ cursor: 'pointer' }}>
                             <div className="favorite-badge">❤️</div>
                             <div className="favorite-image">
-                                🍎
+                                {item.imgurl1 ? (
+                                    <img
+                                        src={item.imgurl1}
+                                        alt={item.product_name}
+                                        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                    />
+                                ) : (
+                                    '🍎'
+                                )}
                             </div>
                             <div className="favorite-content">
                                 <p className="favorite-brand">{item.manufacturer || item.brand}</p>

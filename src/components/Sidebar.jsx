@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Sidebar.css';
 
-const Sidebar = ({ isOpen, onClose, isLoggedIn = false, onLogout }) => {
+const Sidebar = ({ isOpen, onClose, isLoggedIn = false, onLogout, onLoginClick }) => {
     const navigate = useNavigate();
 
     const menuItems = [
@@ -18,14 +18,14 @@ const Sidebar = ({ isOpen, onClose, isLoggedIn = false, onLogout }) => {
             label: '즐겨찾기',
             icon: '❤️',
             path: '/favorites',
-            show: true
+            show: isLoggedIn
         },
         {
             id: 'history',
             label: '히스토리',
             icon: '🕒',
             path: '/history',
-            show: true
+            show: isLoggedIn
         },
         {
             id: 'source',
@@ -63,7 +63,7 @@ const Sidebar = ({ isOpen, onClose, isLoggedIn = false, onLogout }) => {
 
                 <div className="sidebar-menu">
                     {!isLoggedIn ? (
-                        <div className="menu-item" onClick={() => handleMenuClick('/login')}>
+                        <div className="menu-item" onClick={onLoginClick}>
                             <i>🔑</i>
                             <span>로그인</span>
                         </div>

@@ -2,7 +2,7 @@ import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import './dar.css'
 
-const Header = ({ onMenuClick }) => {
+const Header = ({ onMenuClick, isLoggedIn }) => {
     const navigate = useNavigate();
 
     const homeNavigate = (state = {}) => {
@@ -13,15 +13,19 @@ const Header = ({ onMenuClick }) => {
         /* top-bar: 상단 고정 헤더 */
         <div className="top-bar">
 
-            {/* 좌측: 기록 버튼 */}
+            {/* 좌측: 기록 버튼 (로그인 시에만 노출) */}
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                <i
-                    style={{ fontStyle: 'normal', fontSize: '14px', cursor: 'pointer' }}
-                    onClick={() => navigate('/history')}
-                >
-                    기록
-                </i>
-                <span style={{ color: '#e5e7eb' }}>|</span>
+                {isLoggedIn && (
+                    <>
+                        <i
+                            style={{ fontStyle: 'normal', fontSize: '14px', cursor: 'pointer' }}
+                            onClick={() => navigate('/favorites')}
+                        >
+                            즐겨찾기
+                        </i>
+                        <span style={{ color: '#e5e7eb' }}>|</span>
+                    </>
+                )}
             </div>
 
             {/* 중앙: 로고 */}

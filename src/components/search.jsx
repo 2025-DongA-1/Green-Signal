@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import db from './lib/db'
 import './dar.css'
 
-const Search = () => {
+const Search = ({ isLoggedIn }) => {
     // 1. 상태 및 훅 초기화
     const navigate = useNavigate();
     const [recommendItems, setRecommendItems] = useState([]); // 하단 추천 목록 데이터
@@ -52,9 +52,6 @@ const Search = () => {
         navigate(path, { state });
     }
 
-
-
-    // 5. 이벤트 핸들러: 입력창에서 엔터 키 입력 시 검색 실행
     return (
         <div className="stack">
             {/* 1. 검색 영역: 클릭 시 검색 탭으로 이동만 수행 */}
@@ -63,13 +60,15 @@ const Search = () => {
                 style={{ marginTop: '20px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
                 onClick={() => navigate('/search')}
             >
-                <div
-                    onClick={(e) => { e.stopPropagation(); navigate('/favorites'); }}
-                    style={{ cursor: 'pointer', fontSize: '20px', color: '#f43f5e', marginRight: '4px' }}
-                    title="즐겨찾기"
-                >
-                    ❤️
-                </div>
+                {isLoggedIn && (
+                    <div
+                        onClick={(e) => { e.stopPropagation(); navigate('/favorites'); }}
+                        style={{ cursor: 'pointer', fontSize: '20px', color: '#f43f5e', marginRight: '4px' }}
+                        title="즐겨찾기"
+                    >
+                        ❤️
+                    </div>
+                )}
                 <div style={{ flex: 1, color: '#999', fontSize: '14px', textAlign: 'left', padding: '10px 0' }}>
                     상품명을 입력 해주세요
                 </div>

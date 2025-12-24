@@ -3,7 +3,7 @@ import API from "./utils/axiosInstance";
 import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
 import HomePage from "./pages/HomePage";
-import RegisterPage from "./pages/RegisterPage";
+import AuthModal from "./components/AuthModal";
 import MyPageModal from "./components/MyPageModal";
 import AdminPage from "./pages/AdminPage"; // ✅ 관리자 페이지 추가
 
@@ -95,19 +95,13 @@ function App() {
         {page === "admin" && <AdminPage />} {/* ✅ 관리자 페이지 완전 연결 */}
       </main>
 
-      {/* 로그인 / 회원가입 모달 */}
-      {showLogin && (
-        <RegisterPage
-          onClose={() => setShowLogin(false)}
-          onSuccess={handleLoginSuccess}
-        />
-      )}
-      {showRegister && (
-        <RegisterPage
-          onClose={() => setShowRegister(false)}
-          onDone={handleRegisterDone}
-        />
-      )}
+      {/* 로그인 / 회원가입 모달 (AuthModal로 교체) */}
+      <AuthModal
+        open={showLogin}
+        onClose={() => setShowLogin(false)}
+        onLoginSuccess={handleLoginSuccess}
+      />
+
 
       {/* 마이페이지 모달 */}
       {showMyPage && user && (

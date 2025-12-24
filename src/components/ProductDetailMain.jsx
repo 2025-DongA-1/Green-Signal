@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import db from './lib/db';
 import './dar.css';
 
-const ProductDetailMain = ({ favorites = [], toggleFavorite }) => {
+const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
     // 1. 상태 및 라우팅 관련 정의
     const [activeTab, setActiveTab] = useState('summary'); // 현재 선택된 탭 (요약/성분/영양 등)
     const [product, setProduct] = useState(null); // 조회된 상품 상세 데이터
@@ -22,17 +22,15 @@ const ProductDetailMain = ({ favorites = [], toggleFavorite }) => {
     // 현재 상품이 즐겨찾기에 있는지 확인 (SQL 명세 필드 report_no 기준)
     const isFavorite = product && favorites.some(fav => (fav.report_no || fav.prdlstReportNo) === (product.report_no || product.prdlstReportNo));
 
-    /**
-     * [상품 정보 조회 기능]
-     * 전달받은 productId를 기반으로 DB에서 상세 정보를 가져옵니다.
-     */
+    // [상품 정보 조회 기능]
+    // 전달받은 productId를 기반으로 DB에서 상세 정보를 가져옵니다.
     useEffect(() => {
         let isMounted = true;
         const fetchProduct = async () => {
             setProduct(null); // 이전 데이터 초기화
             setIsLoading(true);
             try {
-                // SQL 쿼리: 리포트 번호 또는 바코드가 일치하는 상품 조회 (조인 사용)
+                // ... (상품 조회 쿼리 등 기존 코드 유지)
                 const query = `
                     SELECT p.*, b.barcode 
                     FROM products p
@@ -51,28 +49,32 @@ const ProductDetailMain = ({ favorites = [], toggleFavorite }) => {
                     if (recordedRef.current === found.report_no) return;
                     recordedRef.current = found.report_no;
 
-                    // 스캔 이력(scan_history)에 기록 추가
-                    const historyValues = [
-                        1,
-                        (found.barcode || '').trim(),
-                        found.report_no,
-                        found.product_name,
-                        'OK',
-                        new Date().toISOString(),
-                        Date.now()
-                    ];
+                    // 스캔 이력(scan_history)에 기록 추가 (로그인한 유저만)
+                    if (userInfo && userInfo.user_id) {
+                        const historyValues = [
+                            userInfo.user_id,
+                            (found.barcode || '').trim(),
+                            found.report_no,
+                            found.product_name,
+                            'OK',
+                            new Date().toISOString().slice(0, 19).replace('T', ' '), // MySQL DATETIME format
+                            Date.now()
+                        ];
 
-                    await db.execute('DELETE FROM scan_history WHERE report_no = ?', [found.report_no]);
-                    await db.execute(
-                        'INSERT INTO scan_history (user_id, barcode, report_no, product_name_snapshot, warning_level_snapshot, scanned_at, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                        historyValues
-                    );
+                        await db.execute('DELETE FROM scan_history WHERE report_no = ? AND user_id = ?', [found.report_no, userInfo.user_id]);
+                        await db.execute(
+                            'INSERT INTO scan_history (user_id, barcode, report_no, product_name_snapshot, warning_level_snapshot, scanned_at, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                            historyValues
+                        );
 
-                    // 히스토리 개수 제한 (최신 20개만 유지)
-                    const currentHistory = await db.execute('SELECT timestamp FROM scan_history ORDER BY timestamp DESC');
-                    if (currentHistory.length > 20) {
-                        const thresholdTimestamp = currentHistory[19].timestamp; // 20번째 아이템의 타임스탬프
-                        await db.execute('DELETE FROM scan_history WHERE timestamp < ?', [thresholdTimestamp]);
+                        // 히스토리 개수 제한 (해당 유저의 최신 20개만 유지)
+                        const currentHistory = await db.execute('SELECT timestamp FROM scan_history WHERE user_id = ? ORDER BY timestamp DESC', [userInfo.user_id]);
+                        if (currentHistory.length > 20) {
+                            const thresholdTimestamp = currentHistory[19].timestamp;
+                            await db.execute('DELETE FROM scan_history WHERE user_id = ? AND timestamp < ?', [userInfo.user_id, thresholdTimestamp]);
+                        }
+                    } else {
+                        console.log('로그인하지 않아 히스토리를 저장하지 않습니다.');
                     }
                 } else if (isMounted) {
                     console.warn('❌ 상품을 찾을 수 없습니다. (ID:', productId, ')');

@@ -37,26 +37,33 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// ✅ 로그인
+// ✅ 로그인 라우트
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
+    
+    // 이메일로 사용자 조회
     const [user] = await db.query("SELECT * FROM users WHERE email = ?", [email]);
 
-    if (!user.length)
+    // 사용자가 존재하지 않는 경우
+    if (!user.length) {
       return res.status(401).json({ message: "존재하지 않는 이메일입니다." });
+    }
 
-    // 단순 문자열 비교 (bcrypt 제거)
-    if (user[0].password !== password)
+    // 비밀번호 확인 (단순 문자열 비교)
+    if (user[0].password !== password) {
       return res.status(401).json({ message: "비밀번호가 올바르지 않습니다." });
+    }
 
+    // JWT 토큰 생성
     const token = jwt.sign(
-      { id: user[0].id, email: user[0].email, role: user[0].role },
+      { id: user[0].user_id, email: user[0].email, role: user[0].role },
       process.env.JWT_SECRET || "temp_secret",
       { expiresIn: "1h" }
     );
 
-    res.json({ message: "로그인 성공", token });
+    // 로그인 성공 응답 (토큰 및 사용자 정보 포함)
+    res.json({ message: "로그인 성공", token, user: user[0] }); 
   } catch (err) {
     console.error("로그인 오류:", err);
     res.status(500).json({ message: "서버 오류" });

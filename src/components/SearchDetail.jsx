@@ -7,7 +7,7 @@ import { Camera } from '@capacitor/camera';
 import db from './lib/db.js'
 import './dar.css'
 
-const SearchDetail = () => {
+const SearchDetail = ({ isLoggedIn }) => {
     // 1. 필요한 훅 및 상태 정의
     const location = useLocation(); // 이전 페이지에서 넘겨준 데이터(검색어 등) 수신
     const navigate = useNavigate();
@@ -157,13 +157,15 @@ const SearchDetail = () => {
         <div className="stack">
             {/* 1. 검색 입력 영역: 현재 페이지에서도 즉시 다른 상품을 검색할 수 있도록 제공 */}
             <div className="card search-box" style={{ marginTop: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div
-                    onClick={() => navigate('/favorites')}
-                    style={{ cursor: 'pointer', fontSize: '20px', color: '#f43f5e', marginRight: '4px' }}
-                    title="즐겨찾기"
-                >
-                    ❤️
-                </div>
+                {isLoggedIn && (
+                    <div
+                        onClick={() => navigate('/favorites')}
+                        style={{ cursor: 'pointer', fontSize: '20px', color: '#f43f5e', marginRight: '4px' }}
+                        title="즐겨찾기"
+                    >
+                        ❤️
+                    </div>
+                )}
                 <input
                     id="scarcest"
                     type="text"

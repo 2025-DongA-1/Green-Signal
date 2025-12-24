@@ -23,15 +23,17 @@ class RemoteDatabase {
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Server Error');
+                const errorText = await response.text();
+                console.error("DB Execute failed:", response.status, errorText);
+                throw new Error(errorText || 'Server Error');
             }
 
             const result = await response.json();
+            // console.log("DB Execute Success:", sql, result); // DEBUG
             return result;
         } catch (error) {
             console.error('Database Request Failed:', error);
-            // 서버가 꺼져있을 때의 에러 처리 등을 추가할 수 있습니다.
+            // alert("데이터베이스 연결 실패: " + error.message); // 임시 알림으로 켜보면 확인 가능
             throw error;
         }
     }

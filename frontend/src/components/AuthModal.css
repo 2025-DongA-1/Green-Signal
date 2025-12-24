@@ -1,0 +1,212 @@
+/* AuthModal.css - Premium Glassmorphism Design */
+
+/* 모달 오버레이 (뒷배경) */
+.auth-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4); /* 어두운 반투명 배경 */
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px); /* 블러 효과로 고급스러움 추가 */
+    z-index: 1000;
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* 폼 컨테이너 (유리 카드) */
+.auth-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 420px;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 2.5rem;
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    z-index: 1001;
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    flex-direction: column;
+}
+
+/* 닫기 버튼 */
+.close-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #666;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.close-btn:hover {
+    transform: rotate(90deg);
+    color: #333;
+}
+
+/* 타이틀 */
+.auth-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 2rem;
+    color: #1a1a1a;
+    letter-spacing: -0.5px;
+}
+
+/* 입력 필드 그룹 */
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 1.5rem;
+    width: 100%; /* 부모 너비 채우기 */
+}
+
+.auth-input {
+    width: 100%; /* 너비 100%로 고정 */
+    box-sizing: border-box; /* 패딩 포함 크기 계산 */
+    padding: 14px 16px;
+    border: 2px solid #eee;
+    border-radius: 12px;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+    background: #f9f9f9;
+    outline: none;
+    margin: 0; /* 불필요한 마진 제거 */
+}
+
+.auth-input:focus {
+    border-color: #4f46e5;
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+}
+
+/* 메인 버튼 */
+.submit-btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.2s;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+.submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(79, 70, 229, 0.4);
+}
+
+.submit-btn:active {
+    transform: translateY(0);
+}
+
+/* 링크 텍스트 (회원가입/비번찾기) */
+.auth-links {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1rem;
+    font-size: 0.9rem;
+}
+
+.link-btn {
+    background: none;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    text-decoration: none;
+    transition: color 0.2s;
+    padding: 0;
+}
+
+.link-btn:hover {
+    color: #4f46e5;
+    text-decoration: underline;
+}
+
+/* 구분선 */
+.divider {
+    display: flex;
+    align-items: center;
+    margin: 1.5rem 0;
+    color: #999;
+    font-size: 0.9rem;
+}
+
+.divider::before, .divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: #eee;
+}
+
+.divider span {
+    padding: 0 10px;
+}
+
+/* 소셜 로그인 버튼 */
+.social-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.social-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px;
+    border-radius: 12px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.1s;
+    font-size: 0.95rem;
+}
+
+.social-btn.google {
+    background: #fff;
+    border: 1px solid #ddd;
+    color: #333;
+}
+
+.social-btn.kakao {
+    background: #FEE500;
+    color: #191919;
+}
+
+.social-btn:hover {
+    transform: translateY(-2px);
+    filter: brightness(0.98);
+}
+
+/* 에러 메시지 */
+.error-msg {
+    color: #ef4444;
+    font-size: 0.9rem;
+    text-align: center;
+    margin-bottom: 1rem;
+    background: rgba(239, 68, 68, 0.1);
+    padding: 8px;
+    border-radius: 8px;
+}
+
+/* 애니메이션 */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translate(-50%, -40%); }
+    to { opacity: 1; transform: translate(-50%, -50%); }
+}

@@ -8,53 +8,92 @@ import Footer from './components/Footer'
 import Search from './components/search'
 import SearchDetail from './components/SearchDetail'
 import ProductDetailMain from './components/ProductDetailMain'
-import Login from './components/Login'
 import History from './components/History'
 import Favorites from './components/Favorites'
 import Sidebar from './components/Sidebar'
+import AuthModal from './components/AuthModal' // ✅ 변경: AuthModal import
 import { ProfilePlaceholder, SourcePlaceholder } from './components/Placeholders'
 
 function App() {
   const [favorites, setFavorites] = useState([])
   const [isSidebarOpen, setSidebarOpen] = useState(false)
   const [isLoggedIn, setLoggedIn] = useState(false)
+  const [showLoginModal, setShowLoginModal] = useState(false) // ✅ 추가: 로그인 모달 상태
+  const [userInfo, setUserInfo] = useState(null) // ✅ 추가: 로그인 유저 정보
 
-  // 초기 즐겨찾기 로드
+  // 공통: 즐겨찾기 데이터 로드 함수
+  const fetchFavorites = async (userId) => {
+    if (!userId) return;
+    try {
+      // DB에서 즐겨찾기 목록을 조회 (상품 테이블과 조인하여 이미지 URL 가져오기)
+      // 특정 유저(user_id)의 즐겨찾기만 조회
+      const query = `
+          SELECT f.*, p.imgurl1 
+          FROM favorites f 
+          LEFT JOIN products p ON f.report_no = p.report_no
+          WHERE f.user_id = ?
+        `;
+      const data = await db.execute(query, [userId]);
+      setFavorites(data || []);
+    } catch (e) {
+      console.error('즐겨찾기 로드 실패:', e);
+    }
+  };
+
+  // 컴포넌트 마운트 시 초기 로그인 상태 확인 및 데이터 로드
   useEffect(() => {
-    const loadFavorites = async () => {
-      try {
-        const data = await db.execute('SELECT * FROM favorites');
-        setFavorites(data || []);
-      } catch (e) {
-        console.error('즐겨찾기 로드 실패:', e);
-      }
-    };
-    loadFavorites();
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
+
+    if (token && user) {
+      setLoggedIn(true);
+      const parsedUser = JSON.parse(user);
+      setUserInfo(parsedUser);
+      // 로그인 상태라면 즐겨찾기 로드
+      fetchFavorites(parsedUser.user_id);
+    } else {
+      // 로그아웃 상태라면 초기화
+      setFavorites([]);
+    }
   }, []);
 
-  // 즐겨찾기 토글 함수
+  // [기능: 즐겨찾기 추가/삭제]
+  // 사용자가 하트 버튼을 클릭했을 때 호출됩니다.
+  // DB에 즐겨찾기 데이터를 추가하거나, 이미 존재하면 삭제합니다.
   const toggleFavorite = async (product) => {
+    if (!isLoggedIn || !userInfo) {
+      alert('로그인이 필요한 서비스입니다.');
+      setShowLoginModal(true);
+      return;
+    }
+
+    // 상품 고유 번호 추출 (데이터 소스에 따라 필드명이 다를 수 있음)
     const reportNo = product.report_no || product.prdlstReportNo;
+
+    // 현재 즐겨찾기 목록에 해당 상품이 있는지 확인
     const isExist = favorites.find(item => (item.report_no || item.prdlstReportNo) === reportNo);
 
     try {
       if (isExist) {
-        await db.execute('DELETE FROM favorites WHERE report_no = ?', [reportNo]);
+        // [삭제 로직] 이미 존재하면 DB에서 삭제 (해당 유저의 것만)
+        await db.execute('DELETE FROM favorites WHERE report_no = ? AND user_id = ?', [reportNo, userInfo.user_id]);
+        // 화면 목록에서도 즉시 제거
         setFavorites(prev => prev.filter(item => (item.report_no || item.prdlstReportNo) !== reportNo));
       } else {
+        // [추가 로직] 존재하지 않으면 DB에 추가 (최대 50개 제한)
         if (favorites.length >= 50) {
           alert('즐겨찾기는 최대 50개까지만 등록할 수 있습니다.');
           return;
         }
 
         const favValues = [
-          1, // user_id (임시)
+          userInfo.user_id, // 실제 로그인 유저 ID
           reportNo,
           product.product_name || product.product_name_snapshot || product.prdlstNm,
           product.manufacturer || product.manufacture,
           'safe',
           '🟢 안전', // grade_text
-          new Date().toISOString()
+          new Date().toISOString().slice(0, 19).replace('T', ' ') // MySQL DATETIME format
         ];
 
         await db.execute(
@@ -63,13 +102,14 @@ function App() {
         );
 
         const newItem = {
-          user_id: 1,
+          user_id: userInfo.user_id,
           report_no: reportNo,
           product_name: product.product_name || product.product_name_snapshot || product.prdlstNm,
           manufacturer: product.manufacturer || product.manufacture,
           grade: 'safe',
           grade_text: '🟢 안전',
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
+          imgurl1: product.imgurl1 // 이미지 URL 추가
         };
         setFavorites(prev => [newItem, ...prev]);
       }
@@ -80,34 +120,57 @@ function App() {
 
   const handleLogout = () => {
     setLoggedIn(false);
+    setUserInfo(null);
+    setFavorites([]); // 즐겨찾기 목록 초기화
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     alert('로그아웃 되었습니다.');
+  };
+
+  const handleLoginSuccess = (user) => {
+    setLoggedIn(true);
+    setUserInfo(user);
+    setShowLoginModal(false);
+    fetchFavorites(user.user_id); // 로그인 성공 시 데이터 로드
+    alert(`환영합니다, ${user.nickname || '사용자'}님!`);
   };
 
   return (
     <div>
-      <Header onMenuClick={() => setSidebarOpen(true)} />
+      <Header onMenuClick={() => setSidebarOpen(true)} isLoggedIn={isLoggedIn} />
 
       <Sidebar
         isOpen={isSidebarOpen}
         onClose={() => setSidebarOpen(false)}
         isLoggedIn={isLoggedIn}
+        userInfo={userInfo}
         onLogout={handleLogout}
+        onLoginClick={() => {
+          setSidebarOpen(false); // 사이드바 닫고
+          setShowLoginModal(true); // 로그인 창 열기
+        }}
       />
 
       <div className="container">
         <Routes>
-          <Route path="/" element={<Search />} />
-          <Route path="/search" element={<SearchDetail />} />
-          <Route path="/product" element={<ProductDetailMain favorites={favorites} toggleFavorite={toggleFavorite} />} />
-          <Route path="/login" element={<Login onLoginSuccess={() => setLoggedIn(true)} />} />
-          <Route path="/history" element={<History />} />
-          <Route path="/favorites" element={<Favorites favorites={favorites} onRemove={toggleFavorite} />} />
+          <Route path="/" element={<Search isLoggedIn={isLoggedIn} />} />
+          <Route path="/search" element={<SearchDetail isLoggedIn={isLoggedIn} />} />
+          <Route path="/product" element={<ProductDetailMain favorites={favorites} toggleFavorite={toggleFavorite} userInfo={userInfo} />} />
+          <Route path="/history" element={<History isLoggedIn={isLoggedIn} userInfo={userInfo} />} />
+          <Route path="/favorites" element={<Favorites favorites={favorites} onRemove={toggleFavorite} isLoggedIn={isLoggedIn} />} />
           <Route path="/profile" element={<ProfilePlaceholder />} />
           <Route path="/source" element={<SourcePlaceholder />} />
         </Routes>
       </div>
 
       <Footer />
+
+      {/* 글로벌 로그인 모달 */}
+      <AuthModal
+        open={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onLoginSuccess={handleLoginSuccess}
+      />
     </div>
   )
 }

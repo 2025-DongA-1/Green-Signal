@@ -10,13 +10,21 @@ import "./strategies/google.js";
 import "./strategies/kakao.js";
 import authRouter from "./routes/auth.js";
 import usersRouter from "./routes/users.js";
+import db from "./db.js";
 
 const app = express();
 app.use(express.json());
 
 app.use(
   cors({
-    origin: process.env.FRONT_URI || "http://localhost:5173",
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "http://localhost:3002",
+      "http://localhost:3003",
+      process.env.FRONT_URI
+    ].filter(Boolean),
     credentials: true,
   })
 );
@@ -37,6 +45,19 @@ passport.deserializeUser((user, done) => done(null, user));
 
 app.use("/auth", authRouter);
 app.use("/users", usersRouter);
+
+// ✅ 프론트엔드 직접 SQL 실행 지원 (레거시 코드 호환용)
+app.post("/api/execute", async (req, res) => {
+  try {
+    const { sql, params } = req.body;
+    // console.log("Executing SQL:", sql, params); // 디버깅용 로그
+    const [rows] = await db.query(sql, params);
+    res.json(rows);
+  } catch (err) {
+    console.error("SQL Exec Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));

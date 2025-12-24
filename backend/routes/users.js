@@ -6,27 +6,37 @@ import db from "../db.js";
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET;
 
-// ✅ JWT 인증 미들웨어
-function verifyToken(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ message: "토큰이 없습니다." });
+// ✅ JWT// 토큰 검증 미들웨어
+const verifyToken = async (req, res, next) => {
+  const token = req.headers.authorization?.split(" ")[1];
 
-  const token = authHeader.split(" ")[1];
-  jwt.verify(token, JWT_SECRET, (err, decoded) => {
-    if (err) return res.status(403).json({ message: "유효하지 않은 토큰" });
-    req.user = decoded;
+  if (!token) {
+    return res.status(401).json({ message: "토큰이 없습니다." });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "temp_secret");
+    
+    // DB에서 사용자 확인 (user_id로 조회)
+    // 페이로드에 id가 있을 수도 있고 user_id가 있을 수도 있음
+    const userId = decoded.user_id || decoded.id; 
+    const [user] = await db.query("SELECT * FROM users WHERE user_id = ?", [userId]);
+
+    if (!user.length) {
+      return res.status(401).json({ message: "유효하지 않은 사용자입니다." });
+    }
+
+    req.user = user[0];
     next();
-  });
-}
+  } catch (err) {
+    console.error("토큰 검증 실패:", err);
+    return res.status(401).json({ message: "토큰이 유효하지 않습니다." });
+  }
+};
 
 // ✅ 내 정보 조회 (로그인 유지용)
 router.get("/me", verifyToken, async (req, res) => {
   try {
-    const [rows] = await db.query("SELECT * FROM users WHERE id = ?", [
-      req.user.id,
-    ]);
-    if (rows.length === 0)
-      return res.status(404).json({ message: "사용자 없음" });
 
     res.json(rows[0]);
   } catch (err) {

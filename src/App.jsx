@@ -64,6 +64,7 @@ function App() {
         // 상태 업데이트
         setLoggedIn(true);
         setUserInfo(userData);
+        setShowLoginModal(false); // ✅ 로그인 모달 닫기 추가
         fetchFavorites(userData.user_id);
 
         // URL 정리 (토큰 제거)

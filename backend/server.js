@@ -17,14 +17,7 @@ app.use(express.json());
 
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "http://localhost:3000",
-      "http://localhost:3001",
-      "http://localhost:3002",
-      "http://localhost:3003",
-      process.env.FRONT_URI
-    ].filter(Boolean),
+    origin: true, // 모든 출처 허용 (개발용)
     credentials: true,
   })
 );

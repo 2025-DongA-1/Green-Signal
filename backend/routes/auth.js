@@ -55,15 +55,19 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ message: "비밀번호가 올바르지 않습니다." });
     }
 
-    // JWT 토큰 생성
+    // JWT 토큰 생성 (Access Token)
     const token = jwt.sign(
       { id: user[0].user_id, email: user[0].email, role: user[0].role },
       process.env.JWT_SECRET || "temp_secret",
       { expiresIn: "1h" }
     );
 
+    // Refresh Token 생성 및 DB 저장
+    const refreshToken = jwt.sign({}, process.env.JWT_SECRET || "temp_secret", { expiresIn: "7d" });
+    await db.query("UPDATE users SET refresh_token = ? WHERE user_id = ?", [refreshToken, user[0].user_id]);
+
     // 로그인 성공 응답 (토큰 및 사용자 정보 포함)
-    res.json({ message: "로그인 성공", token, user: user[0] }); 
+    res.json({ message: "로그인 성공", token, user: { ...user[0], refresh_token: refreshToken } }); 
   } catch (err) {
     console.error("로그인 오류:", err);
     res.status(500).json({ message: "서버 오류" });

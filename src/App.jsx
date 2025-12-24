@@ -40,20 +40,50 @@ function App() {
     }
   };
 
-  // 컴포넌트 마운트 시 초기 로그인 상태 확인 및 데이터 로드
+  // 컴포넌트 마운트 시 초기 로그인 상태 확인 및 데이터 로드 + 소셜 로그인 토큰 처리
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const user = localStorage.getItem('user');
+    // 1. 소셜 로그인 토큰 처리 (URL 쿼리 파라미터 확인)
+    const params = new URLSearchParams(window.location.search);
+    const tokenFromUrl = params.get("token");
 
-    if (token && user) {
-      setLoggedIn(true);
-      const parsedUser = JSON.parse(user);
-      setUserInfo(parsedUser);
-      // 로그인 상태라면 즐겨찾기 로드
-      fetchFavorites(parsedUser.user_id);
+    if (tokenFromUrl) {
+      localStorage.setItem("token", tokenFromUrl);
+
+      // 토큰 디코딩 (간단하게 payload만 해석)
+      try {
+        const payload = JSON.parse(atob(tokenFromUrl.split('.')[1]));
+        const userData = {
+          user_id: payload.id,
+          email: payload.email,
+          role: payload.role,
+          provider: payload.provider, // google or kakao
+          nickname: payload.nickname || (payload.email ? payload.email.split('@')[0] : 'User')
+        };
+        localStorage.setItem("user", JSON.stringify(userData));
+
+        // 상태 업데이트
+        setLoggedIn(true);
+        setUserInfo(userData);
+        fetchFavorites(userData.user_id);
+
+        // URL 정리 (토큰 제거)
+        window.history.replaceState({}, document.title, "/");
+      } catch (e) {
+        console.error("Token parsing error:", e);
+      }
     } else {
-      // 로그아웃 상태라면 초기화
-      setFavorites([]);
+      // 2. 기존 로컬 스토리지 로그인 확인
+      const token = localStorage.getItem('token');
+      const user = localStorage.getItem('user');
+
+      if (token && user) {
+        setLoggedIn(true);
+        const parsedUser = JSON.parse(user);
+        setUserInfo(parsedUser);
+        fetchFavorites(parsedUser.user_id);
+      } else {
+        setFavorites([]);
+      }
     }
   }, []);
 

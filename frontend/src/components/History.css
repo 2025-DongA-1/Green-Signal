@@ -1,0 +1,99 @@
+.history-container {
+    padding: 20px 14px;
+    padding-bottom: 90px;
+}
+
+.history-header h1 {
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 4px;
+}
+
+.history-header p {
+    font-size: 14px;
+    color: var(--c-muted);
+    margin-bottom: 20px;
+}
+
+.history-filters {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.history-item {
+    background: #fff;
+    border: 1px solid var(--c-border);
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: var(--shadow-soft);
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.history-item:active {
+    transform: scale(0.98);
+}
+
+.history-thumb {
+    width: 60px;
+    height: 60px;
+    background: #f1f2f4;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+
+.history-info {
+    flex: 1;
+}
+
+.history-name {
+    font-size: 15px;
+    font-weight: 700;
+    margin: 0;
+    margin-bottom: 4px;
+}
+
+.history-meta {
+    font-size: 12px;
+    color: var(--c-muted);
+}
+
+.history-status {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 10px;
+    white-space: nowrap;
+}
+
+.history-status.safe {
+    background: #e8f8f5;
+    color: #2ecc71;
+}
+
+.empty-history {
+    text-align: center;
+    padding: 80px 20px;
+    color: #999;
+}
+
+.empty-icon {
+    font-size: 48px;
+    display: block;
+    margin-bottom: 16px;
+}

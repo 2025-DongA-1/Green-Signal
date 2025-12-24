@@ -1,86 +1,56 @@
-// src/components/Header.jsx
-import React from "react";
+import React from 'react'
+import { useNavigate } from 'react-router-dom'
+import './dar.css'
 
-function getAvatarLetter(user) {
-  if (!user) return "?";
-  const base = user.nickname || user.email || "U";
-  return String(base).trim().charAt(0).toUpperCase();
-}
+const Header = ({ onMenuClick, isLoggedIn }) => {
+    const navigate = useNavigate();
 
-const Header = ({
-  user,
-  onLoginClick,
-  onLogout,
-  onSidebarToggle,
-  onNavigate,
-  onMyPageClick, // ✅ 추가
-}) => {
-  const isAdmin =
-    user && (user.role === "admin" || user.role === "super_admin");
+    const homeNavigate = (state = {}) => {
+        navigate('/', { state });
+    }
 
-  return (
-    <header className="flex items-center justify-between bg-[#0a1525] text-white p-3 shadow">
-      <div className="flex items-center gap-3">
-        <button onClick={onSidebarToggle} className="text-xl">
-          ☰
-        </button>
+    return (
+        /* top-bar: 상단 고정 헤더 */
+        <div className="top-bar">
 
-        <h1 className="text-lg font-semibold">My Service</h1>
-
-        {/* ✅ 관리자만 노출: 이름 왼쪽에 관리자페이지 버튼 */}
-        {isAdmin && (
-          <button
-            className="ml-2 bg-green-600 hover:bg-green-500 px-3 py-1 rounded"
-            onClick={() => onNavigate("admin")}
-          >
-            관리자페이지
-          </button>
-        )}
-      </div>
-
-      <div className="flex items-center gap-3">
-        {user ? (
-          <>
-            {/* ✅ 프로필/닉네임 영역 */}
-            <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center font-bold">
-                {getAvatarLetter(user)}
-              </div>
-              <div className="leading-tight">
-                <div className="font-semibold">{user.nickname}</div>
-                <div className="text-xs text-white/60">{user.provider}</div>
-              </div>
+            {/* 좌측: 기록 버튼 (로그인 시에만 노출) */}
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                {isLoggedIn && (
+                    <>
+                        <i
+                            style={{ fontStyle: 'normal', fontSize: '14px', cursor: 'pointer' }}
+                            onClick={() => navigate('/favorites')}
+                        >
+                            즐겨찾기
+                        </i>
+                        <span style={{ color: '#e5e7eb' }}>|</span>
+                    </>
+                )}
             </div>
 
-            {/* ✅ 마이페이지 버튼 옆에 “모양(아바타)” 같이 붙여달라 → 버튼 내부에 아이콘처럼 */}
-            <button
-              onClick={onMyPageClick}
-              className="flex items-center gap-2 bg-white text-black px-3 py-1.5 rounded hover:bg-gray-100"
-            >
-              <span className="w-6 h-6 rounded-full bg-black/10 flex items-center justify-center font-bold text-sm">
-                {getAvatarLetter(user)}
-              </span>
-              마이페이지
-            </button>
+            {/* 중앙: 로고 */}
+            <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <img
+                    src="\Green Signal.png"
+                    alt="Green Signal"
+                    style={{ height: '32px' }}
+                    onClick={() => homeNavigate()}
+                />
+            </div>
 
-            <button
-              onClick={onLogout}
-              className="bg-red-500 hover:bg-red-400 px-3 py-1.5 rounded"
-            >
-              로그아웃
-            </button>
-          </>
-        ) : (
-          <button
-            onClick={onLoginClick}
-            className="bg-blue-500 hover:bg-blue-400 px-3 py-1.5 rounded"
-          >
-            로그인
-          </button>
-        )}
-      </div>
-    </header>
-  );
-};
+            {/* 우측: 메뉴 버튼 */}
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <span style={{ color: '#e5e7eb' }}>|</span>
+                <i
+                    style={{ fontStyle: 'normal', fontSize: '14px', cursor: 'pointer' }}
+                    onClick={onMenuClick}
+                >
+                    메뉴
+                </i>
+            </div>
 
-export default Header;
+        </div>
+    )
+}
+
+export default Header

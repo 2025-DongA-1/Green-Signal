@@ -21,8 +21,8 @@ passport.use(
         if (user.length > 0) return done(null, user[0]);
 
         const [result] = await db.query(
-          `INSERT INTO users (provider, provider_id, email, nickname, role, is_active)
-           VALUES (?, ?, ?, ?, 'user', 1)`,
+          `INSERT INTO users (provider, social_id, email, nickname, role, is_active)
+            VALUES (?, ?, ?, ?, 'user', 1)`,
           ["google", providerId, email, nickname]
         );
 

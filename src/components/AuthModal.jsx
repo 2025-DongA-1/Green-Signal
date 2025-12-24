@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import "./AuthModal.css";
 
 export default function AuthModal({ open, onClose, onLoginSuccess }) {
-    const API = import.meta.env.VITE_API_BASE || "http://localhost:5000";
+    const API = import.meta.env.VITE_API_BASE || "http://localhost:3000";
     const [mode, setMode] = useState("login"); // login | register | find
     const [loading, setLoading] = useState(false);
     const [msg, setMsg] = useState("");

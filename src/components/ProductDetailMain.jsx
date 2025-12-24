@@ -19,8 +19,10 @@ const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
     // 중복 기록 방지를 위한 Ref
     const recordedRef = useRef(null);
 
-    // 현재 상품이 즐겨찾기에 있는지 확인 (SQL 명세 필드 report_no 기준)
-    const isFavorite = product && favorites.some(fav => (fav.report_no || fav.prdlstReportNo) === (product.report_no || product.prdlstReportNo));
+    // 현재 상품이 즐겨찾기에 있는지 확인 (SQL 명세 필드 report_no 기준 - 문자열 변환 비교)
+    const isFavorite = product && favorites.some(fav =>
+        String(fav.report_no || fav.prdlstReportNo) === String(product.report_no || product.prdlstReportNo)
+    );
 
     // [상품 정보 조회 기능]
     // 전달받은 productId를 기반으로 DB에서 상세 정보를 가져옵니다.

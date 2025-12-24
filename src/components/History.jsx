@@ -41,7 +41,11 @@ const History = ({ isLoggedIn, userInfo }) => {
                 const mapped = (data || []).map(item => ({
                     ...item,
                     name: item.product_name_snapshot,
-                    date: item.scanned_at ? item.scanned_at.split('T')[0] : '',
+                    date: item.scanned_at
+                        ? (typeof item.scanned_at === 'string'
+                            ? item.scanned_at.split('T')[0]
+                            : new Date(item.scanned_at).toISOString().split('T')[0])
+                        : '',
                     grade: 'safe',
                     gradeText: '🟢 안전',
                     productId: item.report_no,

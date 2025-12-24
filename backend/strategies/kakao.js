@@ -35,7 +35,7 @@ passport.use(
           ["kakao", kakaoId, email, nickname, "SOCIAL_LOGIN", refreshToken]
         );
 
-        const newUser = { id: result.insertId, email, provider: "kakao", nickname, refresh_token: refreshToken };
+        const newUser = { user_id: result.insertId, email, provider: "kakao", nickname, refresh_token: refreshToken };
         done(null, newUser);
       } catch (err) {
         console.error("Kakao Login Error:", err);

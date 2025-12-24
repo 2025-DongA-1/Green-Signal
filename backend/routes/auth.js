@@ -126,7 +126,7 @@ router.get(
   (req, res) => {
     const user = req.user;
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: "user", provider: "google" },
+      { id: user.user_id, user_id: user.user_id, email: user.email, role: "user", provider: "google" },
       process.env.JWT_SECRET || "temp_secret",
       { expiresIn: "1h" }
     );
@@ -142,7 +142,7 @@ router.get(
   (req, res) => {
     const user = req.user;
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: "user", provider: "kakao" },
+      { id: user.user_id, user_id: user.user_id, email: user.email, role: "user", provider: "kakao" },
       process.env.JWT_SECRET || "temp_secret",
       { expiresIn: "1h" }
     );

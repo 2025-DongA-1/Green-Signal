@@ -53,7 +53,7 @@ function App() {
       try {
         const payload = JSON.parse(atob(tokenFromUrl.split('.')[1]));
         const userData = {
-          user_id: payload.id,
+          user_id: payload.id || payload.user_id, // id 또는 user_id 둘 다 확인
           email: payload.email,
           role: payload.role,
           provider: payload.provider, // google or kakao
@@ -91,17 +91,25 @@ function App() {
   // 사용자가 하트 버튼을 클릭했을 때 호출됩니다.
   // DB에 즐겨찾기 데이터를 추가하거나, 이미 존재하면 삭제합니다.
   const toggleFavorite = async (product) => {
-    if (!isLoggedIn || !userInfo) {
-      alert('로그인이 필요한 서비스입니다.');
+    if (!isLoggedIn || !userInfo || !userInfo.user_id) {
+      console.error("로그인 정보 부족:", userInfo);
+      alert('로그인 정보가 올바르지 않습니다. 다시 로그인해주세요.');
       setShowLoginModal(true);
       return;
     }
 
     // 상품 고유 번호 추출 (데이터 소스에 따라 필드명이 다를 수 있음)
+    console.log("Toggle Favorite Product:", product); // 디버깅용 로그
     const reportNo = product.report_no || product.prdlstReportNo;
 
+    // reportNo가 없으면 중단
+    if (!reportNo) {
+      console.error("No report_no found for product:", product);
+      return;
+    }
+
     // 현재 즐겨찾기 목록에 해당 상품이 있는지 확인
-    const isExist = favorites.find(item => (item.report_no || item.prdlstReportNo) === reportNo);
+    const isExist = favorites.find(item => String(item.report_no || item.prdlstReportNo) === String(reportNo));
 
     try {
       if (isExist) {

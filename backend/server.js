@@ -10,6 +10,8 @@ import "./strategies/google.js";
 import "./strategies/kakao.js";
 import authRouter from "./routes/auth.js";
 import usersRouter from "./routes/users.js";
+import searchRouter from "./routes/search.js";
+import productRouter from "./routes/product.js";
 import db from "./db.js";
 
 const app = express();
@@ -38,6 +40,8 @@ passport.deserializeUser((user, done) => done(null, user));
 
 app.use("/auth", authRouter);
 app.use("/users", usersRouter);
+app.use("/api/search", searchRouter);
+app.use("/api/product", productRouter);
 
 // ✅ 프론트엔드 직접 SQL 실행 지원 (레거시 코드 호환용)
 app.post("/api/execute", async (req, res) => {

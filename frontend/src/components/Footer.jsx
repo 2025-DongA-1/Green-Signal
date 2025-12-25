@@ -4,7 +4,7 @@ import React from 'react'
 import './dar.css'
 import { useNavigate, useLocation } from 'react-router-dom'
 
-const Footer = () => {
+const Footer = ({ isLoggedIn, onOpenLogin }) => {
 
     const navigate = useNavigate();
     const location = useLocation(); // 현재 경로 정보를 가져옴
@@ -14,6 +14,17 @@ const Footer = () => {
     }
     const searchNavigate = (state = {}) => {
         navigate('/search', { state });
+    }
+
+    // 마이페이지 탭 클릭 핸들러
+    const handleProfileClick = () => {
+        if (isLoggedIn) {
+            navigate('/profile');
+        } else {
+            // 로그인 안 상태면 로그인 모달 열기
+            if (onOpenLogin) onOpenLogin();
+            else alert("로그인이 필요합니다.");
+        }
     }
 
     return (
@@ -49,7 +60,10 @@ const Footer = () => {
                 </div>
 
                 {/* 3. 마이(My) 탭 */}
-                <div className="tab">
+                <div
+                    className={`tab ${location.pathname === '/profile' ? 'active' : ''}`}
+                    onClick={handleProfileClick}
+                >
                     {/* 마이페이지 아이콘 (사람 모양 SVG) */}
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>

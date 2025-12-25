@@ -35,10 +35,12 @@ const verifyToken = async (req, res, next) => {
 };
 
 // ✅ 내 정보 조회 (로그인 유지용)
+// ✅ 내 정보 조회 (로그인 유지용)
 router.get("/me", verifyToken, async (req, res) => {
   try {
-
-    res.json(rows[0]);
+    // verifyToken에서 req.user에 유저 정보를 담아줍니다.
+    if (!req.user) return res.status(404).json({ message: "사용자 정보 없음" });
+    res.json(req.user);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "서버 오류" });
@@ -46,7 +48,6 @@ router.get("/me", verifyToken, async (req, res) => {
 });
 
 // ✅ 모든 유저 조회 (관리자페이지용)
-// (원하면 나중에 verifyToken + role 체크로 관리자만 막을 수 있음)
 router.get("/", async (req, res) => {
   try {
     const [rows] = await db.query("SELECT * FROM users");
@@ -58,7 +59,6 @@ router.get("/", async (req, res) => {
 });
 
 // ✅ 유저 정보 수정 (마이페이지/관리자 공용)
-// nickname, allergy, user_type, traits, role, is_active 등 부분 업데이트
 router.put("/:id", async (req, res) => {
   try {
     const { nickname, allergy, user_type, traits, role, is_active } = req.body;
@@ -93,7 +93,8 @@ router.put("/:id", async (req, res) => {
 
     if (fields.length === 0) return res.json({ message: "변경할 내용 없음" });
 
-    const sql = `UPDATE users SET ${fields.join(", ")} WHERE id=?`;
+    // user_id를 기준으로 업데이트 (PK가 user_id이므로)
+    const sql = `UPDATE users SET ${fields.join(", ")} WHERE user_id=?`;
     values.push(req.params.id);
 
     await db.query(sql, values);

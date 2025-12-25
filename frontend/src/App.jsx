@@ -13,6 +13,7 @@ import Favorites from './components/Favorites'
 import Sidebar from './components/Sidebar'
 import AuthModal from './components/AuthModal' // ✅ 변경: AuthModal import
 import { ProfilePlaceholder, SourcePlaceholder } from './components/Placeholders'
+import MyPageModal from './components/MyPageModal'
 
 function App() {
   const [favorites, setFavorites] = useState([])
@@ -197,7 +198,17 @@ function App() {
           <Route path="/product" element={<ProductDetailMain favorites={favorites} toggleFavorite={toggleFavorite} userInfo={userInfo} />} />
           <Route path="/history" element={<History isLoggedIn={isLoggedIn} userInfo={userInfo} />} />
           <Route path="/favorites" element={<Favorites favorites={favorites} onRemove={toggleFavorite} isLoggedIn={isLoggedIn} />} />
-          <Route path="/profile" element={<ProfilePlaceholder />} />
+          <Route path="/profile" element={
+            <MyPageModal
+              user={userInfo}
+              onClose={() => window.history.back()}
+              onSaved={(updatedUser) => {
+                setUserInfo(updatedUser);
+                localStorage.setItem('user', JSON.stringify(updatedUser));
+                alert("회원 정보가 수정되었습니다.");
+              }}
+            />
+          } />
           <Route path="/source" element={<SourcePlaceholder />} />
         </Routes>
       </div>

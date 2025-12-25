@@ -191,8 +191,16 @@ const SearchDetail = ({ isLoggedIn }) => {
                 {/* isScanning이 활성화된 경우에만 카메라 화면(reader) 영역을 렌더링 */}
                 {isScanning && (
                     <div className="scan-box">
-                        <div id="reader" style={{ width: '100%', height: '100%' }}>
+                        <div id="reader">
                             {/* html5-qrcode 라이브러리가 여기에 카메라 화면을 렌더링합니다 */}
+                        </div>
+
+                        {/* 커스텀 오버레이 (가이드라인) */}
+                        <div className="scan-overlay">
+                            <div className="scan-area">
+                                {/* 레이저 라인 제거됨 */}
+                            </div>
+                            <div className="scan-guide-text">바코드를 영역에 맞춰주세요</div>
                         </div>
                     </div>
                 )}

@@ -29,6 +29,15 @@ async function migrate() {
     try {
         console.log('🔗 MySQL에 연결되었습니다.');
 
+        // 0. (추가) imgurl1 컬럼이 없으면 자동으로 생성
+        try {
+            await connection.execute(`ALTER TABLE products ADD COLUMN imgurl1 VARCHAR(2048) DEFAULT NULL`);
+            console.log('✅ imgurl1 컬럼이 생성되었습니다.');
+        } catch (e) {
+            // 컬럼이 이미 있으면 에러가 나는데 무시하면 됩니다.
+            if (e.code !== 'ER_DUP_FIELDNAME') console.log('ℹ️ 컬럼 생성 건너뜀 (이미 존재하거나 오류)');
+        }
+
         // 1. 제품 정보 삽입 SQL (imgurl1 포함)
         const sqlProduct = `
             INSERT INTO products (

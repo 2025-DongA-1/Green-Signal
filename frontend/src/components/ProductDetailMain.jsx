@@ -5,11 +5,15 @@ import './dar.css';
 
 const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
     // 1. 상태 및 라우팅 관련 정의
-    const [activeTab, setActiveTab] = useState('summary'); // 현재 선택된 탭 (요약/성분/영양 등)
-    const [product, setProduct] = useState(null); // 조회된 상품 상세 데이터
-    const [isLoading, setIsLoading] = useState(true); // 로딩 상태
+    const [activeTab, setActiveTab] = useState('summary');
+    const [product, setProduct] = useState(null);
+    const [warnings, setWarnings] = useState([]); // ✅ 경고 상태 추가
+    const [isLoading, setIsLoading] = useState(true);
     const navigate = useNavigate();
     const location = useLocation();
+
+
+
 
     // 이전 페이지(목록 등)에서 넘겨준 상품 식별자 수신
     const productId = location.state?.productId;
@@ -46,6 +50,14 @@ const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
                 if (found && isMounted) {
                     setProduct(found);
                     console.log('✅ 상품 정보 로드 성공:', found.product_name);
+
+                    // [추가] 안전성(알러지/지병) 검사 실행
+                    if (userInfo && userInfo.user_id) {
+                        fetch(`http://localhost:3000/api/product/check-safety?reportNo=${found.report_no}&userId=${userInfo.user_id}`)
+                            .then(res => res.json())
+                            .then(data => setWarnings(data.warnings || []))
+                            .catch(e => console.error("Warning fetch error:", e));
+                    }
 
                     // 엄격한 중복 체크: 현재 렌더링 사이클에서 이미 처리했는지 확인
                     if (recordedRef.current === found.report_no) return;
@@ -206,14 +218,61 @@ const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
 
                 <div className="card">
                     <div style={{ fontWeight: '800', marginBottom: '12px' }}>⚠️ 주의 정보</div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '13px' }}>
-                        <div style={{
-                            background: '#FFF3F2', padding: '10px', borderRadius: '8px',
-                            border: '1px solid rgba(231,76,60,.3)', color: '#E74C3C'
-                        }}>
-                            <div style={{ fontWeight: '800', marginBottom: '4px' }}>알레르기 정보</div>
-                            <div style={{ fontSize: '12px' }}>{product.allergy_text || '정보 없음'}</div>
+                    {/* [추가] 동적 경고 표시 */}
+                    {warnings.length > 0 && (
+                        <div style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {warnings.map((w, idx) => {
+                                // 스타일 결정 로직
+                                let style = { bg: '#FFFBEB', border: '#FDE68A', color: '#D97706' }; // 기본: 주황(Caution)
+
+                                if (w.type === 'allergy' || w.level === 'WARN') {
+                                    // 빨강 (알러지 또는 심각한 경고)
+                                    style = { bg: '#FEF2F2', border: '#FECACA', color: '#DC2626' };
+                                } else if (w.level === 'INFO') {
+                                    // 녹색 (단순 정보)
+                                    style = { bg: '#F0FDF4', border: '#BBF7D0', color: '#16A34A' };
+                                } else if (w.level === 'CAUTION' || w.level === 'CONTRA') {
+                                    // 주황 (주의, 금기)
+                                    style = { bg: '#FFF7ED', border: '#FFEDD5', color: '#EA580C' };
+                                }
+
+                                return (
+                                    <div key={idx} style={{
+                                        padding: '12px', borderRadius: '8px',
+                                        background: style.bg,
+                                        border: `1px solid ${style.border}`,
+                                        color: style.color,
+                                        fontSize: '13px'
+                                    }}>
+                                        <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>
+                                            {w.type === 'allergy' ? '🚨' : (w.level === 'INFO' ? 'ℹ️' : '⚠️')} {w.title}
+                                        </div>
+                                        <div>{w.message}</div>
+                                    </div>
+                                );
+                            })}
                         </div>
+                    )}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '13px' }}>
+                        {/* 알레르기 정보 박스: 내용에 따라 색상 변경 */}
+                        {(() => {
+                            const text = product.allergy_text || '정보 없음';
+                            const isUnknown = ['알수없음', '해당없음', '정보 없음', '', 'None'].includes(text.trim());
+                            const boxStyle = isUnknown
+                                ? { background: '#F9FAFB', border: '1px solid #E5E7EB', color: '#374151' } // 흰색/회색
+                                : { background: '#FFF3F2', border: '1px solid rgba(231,76,60,.3)', color: '#E74C3C' }; // 빨간색
+
+                            return (
+                                <div style={{
+                                    padding: '10px', borderRadius: '8px',
+                                    ...boxStyle
+                                }}>
+                                    <div style={{ fontWeight: '800', marginBottom: '4px' }}>알레르기 정보</div>
+                                    <div style={{ fontSize: '12px' }}>{text}</div>
+                                </div>
+                            );
+                        })()}
+
                         <div style={{
                             background: '#F9FAFB', padding: '10px', borderRadius: '8px',
                             border: '1px solid #E5E7EB', color: '#374151'

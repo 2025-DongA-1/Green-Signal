@@ -1,0 +1,199 @@
+/* src/styles/ProductDetailMain.css */
+
+.p-detail-container {
+  padding-bottom: 80px;
+}
+
+/* 탭 네비게이션은 dar.css의 .nav-tabs 사용한다고 가정하지만, 
+   JSX에서 style={{}}가 없었으므로 그대로 둡니다. */
+
+/* === Summary Card === */
+.p-summary-grid {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 16px;
+}
+
+.p-img-box {
+  width: 80px; height: 80px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: #f1f2f4;
+  border-radius: 8px;
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  font-size: 10px; 
+  color: #999;
+}
+
+.p-info-col {
+  display: flex; 
+  flex-direction: column; 
+  justify-content: space-between;
+}
+
+.p-title-row {
+  display: flex; 
+  justify-content: space-between; 
+  align-items: flex-start;
+}
+
+.p-name {
+  font-weight: 800; 
+  font-size: 16px;
+}
+
+.p-capacity {
+  font-size: 13px; 
+  color: var(--c-muted, #999); 
+  margin-top: 4px;
+}
+
+.p-fav-btn {
+  background: none; 
+  border: none; 
+  cursor: pointer;
+  font-size: 22px; 
+  color: #ccc;
+  transition: color 0.2s;
+}
+/* 즐겨찾기 활성 상태: 노란색 별 (#d0e700d0) 또는 기존 붉은색? */
+/* User code had #f43f5e. Keeping logic in class or inline style override if dynamic */
+.p-fav-btn.active {
+  color: #f43f5e; 
+}
+
+.p-manu-row {
+  font-size: 12px; 
+  color: #666;
+}
+
+.p-divider {
+  margin: 0 4px;
+}
+
+.p-badge-row {
+  margin-top: 12px; 
+  display: flex; 
+  gap: 8px;
+}
+
+/* === Warning Section === */
+.p-warning-title {
+  font-weight: 800; 
+  margin-bottom: 12px;
+}
+
+.p-warning-list {
+  margin-bottom: 16px; 
+  display: flex; 
+  flex-direction: column; 
+  gap: 8px;
+}
+
+.p-warning-item {
+  padding: 12px; 
+  border-radius: 8px; 
+  font-size: 13px;
+  border: 1px solid transparent;
+}
+.p-warning-item-header {
+  font-weight: bold; 
+  margin-bottom: 2px;
+}
+
+/* 동적 스타일 클래스 */
+.warning-allergy {
+  background: #FEF2F2; border-color: #FECACA; color: #DC2626;
+}
+.warning-info {
+  background: #F0FDF4; border-color: #BBF7D0; color: #16A34A;
+}
+.warning-caution {
+  background: #FFF7ED; border-color: #FFEDD5; color: #EA580C;
+}
+.warning-default {
+  background: #FFFBEB; border-color: #FDE68A; color: #D97706;
+}
+
+/* === Info Grid === */
+.p-info-grid {
+  display: grid; 
+  grid-template-columns: 1fr 1fr; 
+  gap: 8px; 
+  font-size: 13px;
+}
+
+.p-info-box {
+  padding: 10px; 
+  border-radius: 8px;
+}
+.p-info-label {
+  font-weight: 800; 
+  margin-bottom: 4px;
+}
+.p-info-val {
+  font-size: 12px;
+}
+
+.info-default {
+  background: #F9FAFB; 
+  border: 1px solid #E5E7EB; 
+  color: #374151;
+}
+.info-alert {
+  background: #FFF3F2; 
+  border: 1px solid rgba(231,76,60,.3); 
+  color: #E74C3C;
+}
+
+/* === Ingredient & Nutrition === */
+.p-section-header {
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  margin-bottom: 8px;
+}
+.p-section-title {
+  font-weight: 800;
+}
+
+.p-text-block {
+  font-size: 13px; 
+  line-height: 1.6; 
+  color: #444;
+}
+
+.p-nutrition-box {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #444;
+  background: #f9f9f9;
+  padding: 12px;
+  border-radius: 8px;
+  white-space: pre-line;
+}
+
+.p-source {
+  margin-top: 12px; 
+  text-align: center;
+}
+.p-source-text {
+  font-size: 10px; 
+  color: #aaa;
+}
+
+/* === Recommend Section === */
+.p-rec-desc {
+  font-size: 12px; 
+  color: #666; 
+  margin-bottom: 10px;
+}
+.p-rec-btn {
+  width: 100%; 
+  background: #fff; 
+  color: var(--c-primary, #10b981); 
+  border: 1px solid var(--c-primary, #10b981);
+}

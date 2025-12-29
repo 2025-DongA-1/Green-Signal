@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './Favorites.css';
+import '../styles/Favorites.css';
 
 const Favorites = ({ favorites = [], onRemove }) => {
     // ----------------------------------------------------------------
@@ -54,7 +54,7 @@ const Favorites = ({ favorites = [], onRemove }) => {
                 <div className="favorites-grid">
                     {filteredFavorites.map((item, index) => (
                         <div key={item.report_no || index} className="favorite-card" onClick={() => handleDetailClick(item)} style={{ cursor: 'pointer' }}>
-                            <div className="favorite-badge">❤️</div>
+                            <div className="favorite-badge">⭐</div>
                             <div className="favorite-image">
                                 {item.imgurl1 ? (
                                     <img

@@ -5,7 +5,7 @@ import { Html5QrcodeScanner } from 'html5-qrcode';
 import { Camera } from '@capacitor/camera';
 
 import db from './lib/db.js'
-import './dar.css'
+import '../styles/dar.css'
 
 const SearchDetail = ({ isLoggedIn }) => {
     // 1. 필요한 훅 및 상태 정의
@@ -160,10 +160,10 @@ const SearchDetail = ({ isLoggedIn }) => {
                 {isLoggedIn && (
                     <div
                         onClick={() => navigate('/favorites')}
-                        style={{ cursor: 'pointer', fontSize: '20px', color: '#f43f5e', marginRight: '4px' }}
+                        style={{ cursor: 'pointer', fontSize: '20px', color: '#d0e700d0', marginRight: '4px' }}
                         title="즐겨찾기"
                     >
-                        ❤️
+                        ⭐
                     </div>
                 )}
                 <input

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import db from './lib/db';
-import './History.css';
+import '../styles/History.css';
 
 const History = ({ isLoggedIn, userInfo }) => {
     // ----------------------------------------------------------------

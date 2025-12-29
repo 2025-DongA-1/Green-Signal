@@ -1,13 +1,14 @@
 import React from 'react'
 // import { Route, Routes, Link } from 'react-router-dom'
 // import { BrowserRouter } from 'react-router-dom'
-import './dar.css'
+import '../styles/dar.css'
 import { useNavigate, useLocation } from 'react-router-dom'
 
 const Footer = ({ isLoggedIn, onOpenLogin }) => {
 
     const navigate = useNavigate();
     const location = useLocation(); // 현재 경로 정보를 가져옴
+
 
     const homeNavigate = (state = {}) => {
         navigate('/', { state });

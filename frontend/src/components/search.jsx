@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import db from './lib/db'
-import './dar.css'
+import '../styles/dar.css'
 
 const Search = ({ isLoggedIn }) => {
     // 1. 상태 및 훅 초기화
@@ -63,10 +63,10 @@ const Search = ({ isLoggedIn }) => {
                 {isLoggedIn && (
                     <div
                         onClick={(e) => { e.stopPropagation(); navigate('/favorites'); }}
-                        style={{ cursor: 'pointer', fontSize: '20px', color: '#f43f5e', marginRight: '4px' }}
+                        style={{ cursor: 'pointer', fontSize: '20px', color: '#d0e700d0', marginRight: '4px' }}
                         title="즐겨찾기"
                     >
-                        ❤️
+                        ⭐
                     </div>
                 )}
                 <div style={{ flex: 1, color: '#999', fontSize: '14px', textAlign: 'left', padding: '10px 0' }}>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import './Sidebar.css';
+import '../styles/Sidebar.css';
 
 /**
  * [사이드바 메뉴 컴포넌트]

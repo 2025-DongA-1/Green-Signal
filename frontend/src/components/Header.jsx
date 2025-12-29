@@ -1,6 +1,6 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import './dar.css'
+import '../styles/dar.css'
 
 const Header = ({ onMenuClick, isLoggedIn }) => {
     const navigate = useNavigate();

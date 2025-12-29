@@ -1,7 +1,9 @@
+// src/components/ProductDetailMain.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import db from './lib/db';
-import './dar.css';
+import '../styles/dar.css';
+import "../styles/ProductDetailMain.css";
 
 const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
     // 1. 상태 및 라우팅 관련 정의
@@ -12,9 +14,6 @@ const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
     const navigate = useNavigate();
     const location = useLocation();
 
-
-
-
     // 이전 페이지(목록 등)에서 넘겨준 상품 식별자 수신
     const productId = location.state?.productId;
     // 추천 목록을 통해 들어왔는지 여부 (화면 UI 조절용)
@@ -23,20 +22,19 @@ const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
     // 중복 기록 방지를 위한 Ref
     const recordedRef = useRef(null);
 
-    // 현재 상품이 즐겨찾기에 있는지 확인 (SQL 명세 필드 report_no 기준 - 문자열 변환 비교)
+    // 현재 상품이 즐겨찾기에 있는지 확인
     const isFavorite = product && favorites.some(fav =>
         String(fav.report_no || fav.prdlstReportNo) === String(product.report_no || product.prdlstReportNo)
     );
 
     // [상품 정보 조회 기능]
-    // 전달받은 productId를 기반으로 DB에서 상세 정보를 가져옵니다.
     useEffect(() => {
         let isMounted = true;
         const fetchProduct = async () => {
             setProduct(null); // 이전 데이터 초기화
             setIsLoading(true);
             try {
-                // ... (상품 조회 쿼리 등 기존 코드 유지)
+                // ... (상품 조회 쿼리)
                 const query = `
                     SELECT p.*, b.barcode 
                     FROM products p
@@ -59,11 +57,11 @@ const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
                             .catch(e => console.error("Warning fetch error:", e));
                     }
 
-                    // 엄격한 중복 체크: 현재 렌더링 사이클에서 이미 처리했는지 확인
+                    // 엄격한 중복 체크
                     if (recordedRef.current === found.report_no) return;
                     recordedRef.current = found.report_no;
 
-                    // 스캔 이력(scan_history)에 기록 추가 (로그인한 유저만)
+                    // 스캔 이력 기록
                     if (userInfo && userInfo.user_id) {
                         const historyValues = [
                             userInfo.user_id,
@@ -71,7 +69,7 @@ const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
                             found.report_no,
                             found.product_name,
                             'OK',
-                            new Date().toISOString().slice(0, 19).replace('T', ' '), // MySQL DATETIME format
+                            new Date().toISOString().slice(0, 19).replace('T', ' '),
                             Date.now()
                         ];
 
@@ -81,7 +79,7 @@ const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
                             historyValues
                         );
 
-                        // 히스토리 개수 제한 (해당 유저의 최신 20개만 유지)
+                        // 히스토리 개수 제한
                         const currentHistory = await db.execute('SELECT timestamp FROM scan_history WHERE user_id = ? ORDER BY timestamp DESC', [userInfo.user_id]);
                         if (currentHistory.length > 20) {
                             const thresholdTimestamp = currentHistory[19].timestamp;
@@ -107,7 +105,7 @@ const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
         return () => {
             isMounted = false;
         };
-    }, [productId]);
+    }, [productId, userInfo]); // userInfo added for dependency
 
     // 2. 상단 탭 구성 설정
     const tabs = ['summary', 'ingredient', 'nutrition'];
@@ -141,7 +139,7 @@ const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
     }
 
     return (
-        <div style={{ paddingBottom: '80px' }}>
+        <div className="p-detail-container">
             <div className="nav-tabs">
                 {tabs.map(tab => (
                     <div
@@ -159,48 +157,32 @@ const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
 
             <div className="stack container" style={{ marginTop: '20px' }}>
                 <div id="summary" className="card">
-                    <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '16px' }}>
-                        <div style={{
-                            width: '80px', height: '80px',
-                            backgroundImage: `url(${product.imgurl1})`,
-                            backgroundSize: 'cover',
-                            backgroundPosition: 'center',
-                            backgroundRepeat: 'no-repeat',
-                            backgroundColor: '#f1f2f4',
-                            borderRadius: '8px',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: '10px', color: '#999'
-                        }}>
+                    <div className="p-summary-grid">
+                        <div className="p-img-box" style={{ backgroundImage: `url(${product.imgurl1})` }}>
                             {!product.imgurl1 && '이미지 없음'}
                         </div>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div className="p-info-col">
+                            <div className="p-title-row">
                                 <div>
-                                    <div style={{ fontWeight: '800', fontSize: '16px' }}>{product.product_name}</div>
-                                    <div style={{ fontSize: '13px', color: 'var(--c-muted)', marginTop: '4px' }}>
+                                    <div className="p-name">{product.product_name}</div>
+                                    <div className="p-capacity">
                                         {product.capacity} / {product.kind_name}
                                     </div>
                                 </div>
                                 <button
-                                    style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        fontSize: '22px',
-                                        color: isFavorite ? '#f43f5e' : '#ccc'
-                                    }}
+                                    className={`p-fav-btn ${isFavorite ? 'active' : ''}`}
                                     onClick={() => toggleFavorite(product)}
                                 >
-                                    {isFavorite ? '★' : '☆'}
+                                    {isFavorite ? '⭐' : '☆'}
                                 </button>
                             </div>
 
-                            <div style={{ fontSize: '12px', color: '#666' }}>
+                            <div className="p-manu-row">
                                 <span>{product.manufacturer}</span>
                                 {product.seller && product.seller !== '_' && (
                                     <>
-                                        <span style={{ margin: '0 4px' }}>|</span>
+                                        <span className="p-divider">|</span>
                                         <span>판매: {product.seller}</span>
                                     </>
                                 )}
@@ -208,7 +190,7 @@ const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
                         </div>
                     </div>
 
-                    <div style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
+                    <div className="p-badge-row">
                         <span className="badge safe">HACCP 인증</span>
                         {product.allergy_text !== '해당없음' && product.allergy_text !== '알수없음' && product.allergy_text && (
                             <span className="badge warn">알레르기 주의</span>
@@ -217,34 +199,24 @@ const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
                 </div>
 
                 <div className="card">
-                    <div style={{ fontWeight: '800', marginBottom: '12px' }}>⚠️ 주의 정보</div>
-                    {/* [추가] 동적 경고 표시 */}
-                    {warnings.length > 0 && (
-                        <div style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            {warnings.map((w, idx) => {
-                                // 스타일 결정 로직
-                                let style = { bg: '#FFFBEB', border: '#FDE68A', color: '#D97706' }; // 기본: 주황(Caution)
+                    <div className="p-warning-title">⚠️ 주의 정보</div>
 
+                    {/* 동적 경고 표시 */}
+                    {warnings.length > 0 && (
+                        <div className="p-warning-list">
+                            {warnings.map((w, idx) => {
+                                let className = "p-warning-item warning-default"; // Default
                                 if (w.type === 'allergy' || w.level === 'WARN') {
-                                    // 빨강 (알러지 또는 심각한 경고)
-                                    style = { bg: '#FEF2F2', border: '#FECACA', color: '#DC2626' };
+                                    className = "p-warning-item warning-allergy";
                                 } else if (w.level === 'INFO') {
-                                    // 녹색 (단순 정보)
-                                    style = { bg: '#F0FDF4', border: '#BBF7D0', color: '#16A34A' };
+                                    className = "p-warning-item warning-info";
                                 } else if (w.level === 'CAUTION' || w.level === 'CONTRA') {
-                                    // 주황 (주의, 금기)
-                                    style = { bg: '#FFF7ED', border: '#FFEDD5', color: '#EA580C' };
+                                    className = "p-warning-item warning-caution";
                                 }
 
                                 return (
-                                    <div key={idx} style={{
-                                        padding: '12px', borderRadius: '8px',
-                                        background: style.bg,
-                                        border: `1px solid ${style.border}`,
-                                        color: style.color,
-                                        fontSize: '13px'
-                                    }}>
-                                        <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>
+                                    <div key={idx} className={className}>
+                                        <div className="p-warning-item-header">
                                             {w.type === 'allergy' ? '🚨' : (w.level === 'INFO' ? 'ℹ️' : '⚠️')} {w.title}
                                         </div>
                                         <div>{w.message}</div>
@@ -253,66 +225,51 @@ const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
                             })}
                         </div>
                     )}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '13px' }}>
-                        {/* 알레르기 정보 박스: 내용에 따라 색상 변경 */}
+
+                    <div className="p-info-grid">
+                        {/* 알레르기 정보 박스 */}
                         {(() => {
                             const text = product.allergy_text || '정보 없음';
                             const isUnknown = ['알수없음', '해당없음', '정보 없음', '', 'None'].includes(text.trim());
-                            const boxStyle = isUnknown
-                                ? { background: '#F9FAFB', border: '1px solid #E5E7EB', color: '#374151' } // 흰색/회색
-                                : { background: '#FFF3F2', border: '1px solid rgba(231,76,60,.3)', color: '#E74C3C' }; // 빨간색
+                            const boxClass = isUnknown ? "p-info-box info-default" : "p-info-box info-alert";
 
                             return (
-                                <div style={{
-                                    padding: '10px', borderRadius: '8px',
-                                    ...boxStyle
-                                }}>
-                                    <div style={{ fontWeight: '800', marginBottom: '4px' }}>알레르기 정보</div>
-                                    <div style={{ fontSize: '12px' }}>{text}</div>
+                                <div className={boxClass}>
+                                    <div className="p-info-label">알레르기 정보</div>
+                                    <div className="p-info-val">{text}</div>
                                 </div>
                             );
                         })()}
 
-                        <div style={{
-                            background: '#F9FAFB', padding: '10px', borderRadius: '8px',
-                            border: '1px solid #E5E7EB', color: '#374151'
-                        }}>
-                            <div style={{ fontWeight: '800', marginBottom: '4px' }}>제품 분류</div>
-                            <div style={{ fontSize: '12px' }}>{product.kind_name || '정보 없음'}</div>
+                        <div className="p-info-box info-default">
+                            <div className="p-info-label">제품 분류</div>
+                            <div className="p-info-val">{product.kind_name || '정보 없음'}</div>
                         </div>
                     </div>
                 </div>
 
                 <div id="ingredient" className="card stack">
                     <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                            <div style={{ fontWeight: '800' }}>원재료</div>
+                        <div className="p-section-header">
+                            <div className="p-section-title">원재료</div>
                         </div>
-                        <div style={{ fontSize: '13px', lineHeight: '1.6', color: '#444' }}>
+                        <div className="p-text-block">
                             {product.raw_materials_text}
                         </div>
                     </div>
                 </div>
 
                 <div id="nutrition" className="card">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                        <div style={{ fontWeight: '800' }}>영양 정보 요약</div>
+                    <div className="p-section-header">
+                        <div className="p-section-title">영양 정보 요약</div>
                     </div>
 
-                    <div style={{
-                        fontSize: '13px',
-                        lineHeight: '1.6',
-                        color: '#444',
-                        background: '#f9f9f9',
-                        padding: '12px',
-                        borderRadius: '8px',
-                        whiteSpace: 'pre-line'
-                    }}>
+                    <div className="p-nutrition-box">
                         {product.nutrient_text || '영양 성분 정보가 등록되어 있지 않습니다.'}
                     </div>
 
-                    <div style={{ marginTop: '12px', textAlign: 'center' }}>
-                        <div style={{ fontSize: '10px', color: '#aaa' }}>
+                    <div className="p-source">
+                        <div className="p-source-text">
                             데이터 출처: HACCP 공공데이터 포털
                         </div>
                     </div>
@@ -321,12 +278,11 @@ const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
                 {!isFromRecommendation && (
                     <div id="recommend">
                         <div className="section-title">관련 더보기</div>
-                        <div style={{ fontSize: '12px', color: '#666', marginBottom: '10px' }}>
+                        <div className="p-rec-desc">
                             같은 분류({product.kind_name})의 다른 제품들을 찾아보세요.
                         </div>
                         <button
-                            className="btn"
-                            style={{ width: '100%', background: '#fff', color: 'var(--c-primary)', border: '1px solid var(--c-primary)' }}
+                            className="btn p-rec-btn"
                             onClick={() => navigate('/search', { state: { query: product.kind_name } })}
                         >
                             '{product.kind_name}' 검색결과 더보기

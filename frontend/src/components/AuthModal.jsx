@@ -1,7 +1,7 @@
 // src/components/AuthModal.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import "./AuthModal.css";
+import "../styles/AuthModal.css";
 
 /**
  * [통합 인증 모달]

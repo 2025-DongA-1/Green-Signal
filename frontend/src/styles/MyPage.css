@@ -1,0 +1,175 @@
+/* src/styles/MyPage.css */
+
+/* 전체 페이지 컨테이너: 중앙 정렬 */
+.mypage-container {
+  max-width: 600px;
+  margin: 20px auto 80px; /* 상단 여백, 하단 여백 (푸터 고려) */
+  padding: 0;
+  
+  /* 글래스모피즘 카드 효과 */
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 24px;
+  box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mypage-header {
+  padding: 32px 32px 10px;
+  background: transparent;
+  display: flex; justify-content: space-between; align-items: flex-start;
+}
+
+.mypage-title {
+  font-size: 28px; font-weight: 800; margin: 0;
+  background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.5px;
+}
+
+.mypage-subtitle {
+  font-size: 15px; color: #6b7280; margin-top: 8px; margin: 0; font-weight: 500;
+}
+
+.mypage-body {
+  padding: 20px 32px 40px;
+}
+
+/* 카드 스타일 */
+.mypage-card {
+  background-color: rgba(255, 255, 255, 0.6);
+  padding: 24px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+  margin-bottom: 32px;
+}
+
+.mypage-card-header {
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+
+.mypage-card-title {
+  font-size: 13px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.8px;
+}
+
+.mypage-row {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 15px; margin-bottom: 14px;
+}
+.mypage-label { color: #6b7280; font-weight: 500;}
+.mypage-value { font-weight: 600; color: #111827; }
+
+.mypage-nickname-input {
+  border: none; border-bottom: 2px solid #e5e7eb;
+  background: transparent; text-align: right; outline: none;
+  padding: 6px 0; width: 60%; font-size: 16px; font-weight: 600; color: #111827;
+  transition: border-color 0.2s;
+}
+.mypage-nickname-input:focus {
+  border-bottom-color: #3b82f6;
+}
+
+.mypage-section { margin-bottom: 36px; }
+.mypage-section-header {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 16px; font-weight: 700; color: #374151;
+  margin-bottom: 16px;
+}
+
+.mypage-badge {
+  font-size: 11px; font-weight: 700; 
+  padding: 4px 10px; border-radius: 10px;
+}
+.mypage-badge.required { color: #dc2626; background-color: #fee2e2; }
+.mypage-badge.health { color: #059669; background-color: #d1fae5; }
+
+.mypage-input-group {
+  display: flex; gap: 12px; margin-bottom: 16px;
+}
+
+.mypage-select {
+  flex: 1; border: 1px solid #e5e7eb; padding: 14px 16px; border-radius: 14px;
+  outline: none; font-size: 15px; background-color: rgba(255,255,255,0.8);
+  cursor: pointer;
+}
+
+.mypage-add-btn {
+  background-color: #1f2937; color: white; border: none;
+  padding: 0 28px; border-radius: 14px; font-weight: 600; cursor: pointer;
+  transition: transform 0.1s, background-color 0.2s;
+}
+.mypage-add-btn:hover { background-color: #000; transform: translateY(-1px); }
+
+.mypage-add-btn.green { background-color: #059669; }
+.mypage-add-btn.green:hover { background-color: #047857; }
+
+.mypage-chips-area {
+  background-color: rgba(243, 244, 246, 0.5); 
+  padding: 20px; border-radius: 20px;
+  min-height: 80px;
+}
+
+.mypage-empty-msg {
+  text-align: center; color: #9ca3af; font-size: 14px; font-style: italic; padding: 12px;
+}
+
+.mypage-chips-wrap {
+  display: flex; flex-wrap: wrap; gap: 10px;
+}
+
+.mypage-chip {
+  background: white; 
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  color: #374151;
+  padding: 8px 14px; border-radius: 14px; 
+  font-size: 14px; font-weight: 600;
+  display: flex; align-items: center; gap: 8px;
+  transition: all 0.2s;
+}
+.mypage-chip:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+}
+
+.mypage-dot { width: 8px; height: 8px; border-radius: 50%; background-color: #f87171; }
+.mypage-dot.green { background-color: #34d399; }
+
+.mypage-chip-remove {
+  border: none; background: #f3f4f6; color: #9ca3af; cursor: pointer;
+  width: 20px; height: 20px; border-radius: 50%;
+  padding: 0; display: flex; align-items: center; justify-content: center; 
+}
+.mypage-chip-remove:hover { background: #fee2e2; color: #ef4444; }
+
+/* 푸터 영역 (저장 버튼만 남김) */
+.mypage-footer {
+  display: flex; justify-content: center; 
+  margin-top: 20px;
+}
+
+.mypage-btn-save {
+  width: 100%;
+  background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+  color: white; border: none;
+  padding: 16px; border-radius: 16px; font-weight: 700; cursor: pointer;
+  font-size: 16px;
+  box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+  transition: all 0.2s;
+}
+.mypage-btn-save:hover {
+  box-shadow: 0 15px 30px rgba(59, 130, 246, 0.4);
+  transform: translateY(-2px);
+}
+.mypage-btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
+}

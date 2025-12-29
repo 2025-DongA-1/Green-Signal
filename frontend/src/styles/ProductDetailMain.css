@@ -4,9 +4,6 @@
   padding-bottom: 80px;
 }
 
-/* 탭 네비게이션은 dar.css의 .nav-tabs 사용한다고 가정하지만, 
-   JSX에서 style={{}}가 없었으므로 그대로 둡니다. */
-
 /* === Summary Card === */
 .p-summary-grid {
   display: grid;
@@ -138,15 +135,16 @@
   font-size: 12px;
 }
 
+
 .info-default {
-  background: #F9FAFB; 
-  border: 1px solid #E5E7EB; 
+  background: #f0f2f5; /* Slightly darker grey for contrast against white card */
+  border: none; 
   color: #374151;
 }
 .info-alert {
-  background: #FFF3F2; 
-  border: 1px solid rgba(231,76,60,.3); 
-  color: #E74C3C;
+  background: #fff5f5; /* Very light red background */
+  border: none; /* No visible border */
+  color: #c92a2a; /* Strong red text */
 }
 
 /* === Ingredient & Nutrition === */

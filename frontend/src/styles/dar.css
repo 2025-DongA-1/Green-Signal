@@ -18,10 +18,6 @@
   /* ë°°ê²½ìƒ‰: ì•½ê°„ íˆ¬ëª…í•œ í°ìƒ‰ */
   background: rgba(255, 255, 255, 0.92);
 
-  /* ë¸”ëŸ¬ íš¨ê³¼ (í˜„ì¬ ë¹„í™œì„±í™”ë¨) */
-  /* backdrop-filter: blur(10px); */
-  /* -webkit-backdrop-filter: blur(10px); */
-
   /* í•˜ë‹¨ í…Œë‘ë¦¬ */
   border-bottom: 1px solid var(--c-border);
 
@@ -57,8 +53,6 @@
 
   /* ë°°ê²½ìƒ‰ */
   background: rgba(255, 255, 255, 0.94);
-  /* backdrop-filter: blur(10px); */
-  /* -webkit-backdrop-filter: blur(10px); */
 
   /* ìƒë‹¨ ê²½ê³„ì„  */
   border-top: 1px solid var(--c-border);
@@ -97,17 +91,19 @@
   background: var(--c-primary);
 }
 
+/* ì¹´ë“œ ìŠ¤íƒ€ì¼ (ê³ ê¸‰í˜•) - ê°€ì‹œì„± ê°œì„  */
 .card {
-  background: var(--c-card);
-  border: 1px solid var(--c-border);
-  border-radius: var(--r-16);
-  box-shadow: var(--shadow-soft);
-  padding: 0 14px;
+  background-color: #ffffff; /* ê°€ì‹œì„±ì„ ìœ„í•´ ì™„ì „ í°ìƒ‰ (ë˜ëŠ” ì•„ì£¼ ë†’ì€ ë¶ˆíˆ¬ëª…ë„) */
+  padding: 24px;
+  border-radius: 24px;
+  border: 1px solid rgba(0, 0, 0, 0.08); /* í…Œë‘ë¦¬ë¥¼ ì‚´ì§ ë” ì§„í•˜ê²Œ */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); /* ê·¸ë¦¼ìë„ ì¡°ê¸ˆ ë” ì„ ëª…í•˜ê²Œ */
+  margin-bottom: 24px;
 }
+
 
 .stack {
   display: grid;
-
   gap: 12px;
 }
 
@@ -141,11 +137,6 @@
   padding: 12px;
   border-radius: 12px;
   border: 1px solid var(--c-border);
-
-  /* input ìì²´ëŠ” í…ìŠ¤íŠ¸ ì…ë ¥ ìš”ì†Œì´ë¯€ë¡œ display: flexëŠ” ì œê±°í•´ì•¼ í•¨ */
-  /* display: flex; (ì‚­ì œë¨) */
-  /* justify-content: baseline; (ì‚­ì œë¨) */
-  /* align-items: center; (ì‚­ì œë¨) */
 }
 
 /* ì¶”ì²œ ëª©ë¡ ìŠ¤íƒ€ì¼ */
@@ -195,18 +186,7 @@
   font-size: 12px;
   color: var(--c-muted);
 }
-/* ë°”ì½”ë“œ ìŠ¤ìº” ì˜ì—­ ìŠ¤íƒ€ì¼ */
-.scan-box {
-  margin-top: 12px;
-  min-height: 500px;
-  border: 2px dashed #d6dae5;
-  border-radius: 16px;
-  display: grid;
-  place-items: center;
-  background: #f8f9fa;
-  color: var(--c-muted);
-  font-size: 13px;
-}
+
 /* íƒ­ ë„¤ë¹„ê²Œì´ì…˜ ìŠ¤íƒ€ì¼ */
 .nav-tabs {
   display: flex;
@@ -262,19 +242,19 @@
   color: var(--c-text);
 }
 
-/* --- [¹ÙÄÚµå ½ºÄµ UI °³¼±] --- */
+/* --- [ë°”ì½”ë“œ ìŠ¤ìº” UI ê°œì„ ] --- */
 .scan-box {
-  position: relative; /* ¿À¹ö·¹ÀÌ ¹èÄ¡¸¦ À§ÇÑ ±âÁØÁ¡ */
+  position: relative; /* ë¶€ëª¨ ìš”ì†Œ ê¸°ì¤€ ìœ„ì¹˜ */
   width: 100%;
-  height: 350px; /* °íÁ¤ ³ôÀÌ (Ä«¸Ş¶ó ºñÀ²¿¡ ¸ÂÃç Á¶Á¤) */
+  height: 350px; /* ë†’ì´ ì„¤ì • (ì¹´ë©”ë¼ ë¹„ìœ¨ì— ë§ì¶° ì¡°ì •) */
   background: #000;
   border-radius: 20px;
-  overflow: hidden; /* ¸ğ¼­¸® µÕ±Û°Ô */
+  overflow: hidden; /* ëª¨ì„œë¦¬ ë‘¥ê¸€ê²Œ */
   margin-top: 20px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
-/* ¶óÀÌºê·¯¸®°¡ »ı¼ºÇÏ´Â ºñµğ¿À ¿µ¿ª */
+/* ë¼ì´ë¸ŒëŸ¬ë¦¬ê°€ ìƒì„±í•˜ëŠ” ë¹„ë””ì˜¤ ìš”ì†Œ */
 #reader {
   width: 100% !important;
   height: 100% !important;
@@ -287,14 +267,14 @@
   border-radius: 20px;
 }
 
-/* ¿À¹ö·¹ÀÌ (½ºÄµ °¡ÀÌµå) */
+/* ì˜¤ë²„ë ˆì´ (ìŠ¤ìº” ê°€ì´ë“œ) */
 .scan-overlay {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  pointer-events: none; /* Å¬¸¯Àº ¾Æ·¡ Ä«¸Ş¶ó·Î Åë°ú */
+  pointer-events: none; /* í´ë¦­ í†µê³¼ (ì•„ë˜ ì¹´ë©”ë¼ ì¡°ì‘ ê°€ëŠ¥) */
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -302,24 +282,24 @@
   z-index: 10;
 }
 
-/* ½ºÄµ ¿µ¿ª (¹àÀº »ç°¢Çü) */
+/* ìŠ¤ìº” ì˜ì—­ (ì¤‘ì•™ ì‚¬ê°í˜•) */
 .scan-area {
   width: 240px;
   height: 240px;
   border: 2px solid rgba(255, 255, 255, 0.8);
   border-radius: 24px;
   position: relative;
-  /* ¹Ú½º ¹Ù±ùÂÊÀ» ¾îµÓ°Ô Ã³¸® (Dim Ã³¸® Hack) */
+  /* ë°•ìŠ¤ ë°”ê¹¥ìª½ ì–´ë‘¡ê²Œ ì²˜ë¦¬ (Dim ì²˜ë¦¬ Hack) */
   box-shadow: 0 0 0 999vmax rgba(0, 0, 0, 0.6);
 }
 
-/* ¸ğ¼­¸® °­Á¶ (¼±ÅÃ»çÇ×) */
+/* ëª¨ì„œë¦¬ ê°•ì¡° (ì´ˆë¡ìƒ‰ ê°€ì´ë“œ) */
 .scan-area::before, .scan-area::after {
   content: '';
   position: absolute;
   width: 40px;
   height: 40px;
-  border: 4px solid #4CAF50; /* ÃÊ·Ï»ö Æ÷ÀÎÆ® */
+  border: 4px solid #4CAF50; /* ì´ˆë¡ìƒ‰ í¬ì¸íŠ¸ */
   border-radius: 4px;
 }
 .scan-area::before {
@@ -331,7 +311,7 @@
   border-left: 0; border-top: 0;
 }
 
-/* ½ºÄµ ·¹ÀÌÀú ¶óÀÎ ¾Ö´Ï¸ŞÀÌ¼Ç */
+/* ìŠ¤ìº” ë ˆì´ì € ë¼ì¸ ì• ë‹ˆë©”ì´ì…˜ */
 .scan-line {
   width: 100%;
   height: 2px;
@@ -349,12 +329,12 @@
   100% { top: 90%; opacity: 0; }
 }
 
-/* ¾È³» ÅØ½ºÆ® */
+/* ì•ˆë‚´ í…ìŠ¤íŠ¸ */
 .scan-guide-text {
   margin-top: 20px;
   color: #fff;
   font-size: 14px;
   font-weight: 600;
   text-shadow: 0 1px 3px rgba(0,0,0,0.8);
-  z-index: 20; /* Dim Ã³¸® À§·Î ¿Ã¸®±â */
+  z-index: 20; /* Dim ì²˜ë¦¬ë³´ë‹¤ ìœ„ì— í‘œì‹œ */
 }

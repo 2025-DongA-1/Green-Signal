@@ -5,7 +5,7 @@
  */
 class RemoteDatabase {
     constructor() {
-        this.apiUrl = 'http://localhost:3000/api/execute';
+        this.apiUrl = 'http://192.168.219.74:3000/api/execute';
     }
 
     /**

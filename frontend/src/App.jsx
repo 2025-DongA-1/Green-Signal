@@ -193,7 +193,7 @@ function App() {
 
       <div className="container">
         <Routes>
-          <Route path="/" element={<Search isLoggedIn={isLoggedIn} />} />
+          <Route path="/" element={<Search isLoggedIn={isLoggedIn} userInfo={userInfo} />} />
           <Route path="/search" element={<SearchDetail isLoggedIn={isLoggedIn} />} />
           <Route path="/product" element={<ProductDetailMain favorites={favorites} toggleFavorite={toggleFavorite} userInfo={userInfo} />} />
           <Route path="/history" element={<History isLoggedIn={isLoggedIn} userInfo={userInfo} />} />

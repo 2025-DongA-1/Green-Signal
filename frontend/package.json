@@ -11,7 +11,9 @@
     "tailwind:init": "tailwindcss init -p"
   },
   "dependencies": {
+    "@capacitor-mlkit/barcode-scanning": "^8.0.0",
     "@capacitor/android": "^8.0.0",
+    "@capacitor/camera": "^8.0.0",
     "@capacitor/cli": "^8.0.0",
     "@capacitor/core": "^8.0.0",
     "axios": "^1.13.2",

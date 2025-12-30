@@ -13,7 +13,7 @@ import "../styles/AuthModal.css";
  */
 export default function AuthModal({ open, onClose, onLoginSuccess }) {
     // API 주소 설정 (환경 변수 또는 기본값 3000번 포트 사용)
-    const API = import.meta.env.VITE_API_BASE || "http://192.168.219.74:3000";
+    const API = import.meta.env.VITE_API_BASE || "http://localhost:3000";
 
     // 모달 내부 상태 관리
     const [mode, setMode] = useState("login"); // 현재 화면 모드 (login | register | find)

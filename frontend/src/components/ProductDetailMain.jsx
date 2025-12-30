@@ -51,7 +51,7 @@ const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
 
                     // [추가] 안전성(알러지/지병) 검사 실행
                     if (userInfo && userInfo.user_id) {
-                        fetch(`http://localhost:3000/api/product/check-safety?reportNo=${found.report_no}&userId=${userInfo.user_id}`)
+                        fetch(`http://192.168.219.74:3000/api/product/check-safety?reportNo=${found.report_no}&userId=${userInfo.user_id}`)
                             .then(res => res.json())
                             .then(data => setWarnings(data.warnings || []))
                             .catch(e => console.error("Warning fetch error:", e));
@@ -189,22 +189,68 @@ const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
                         </div>
                     </div>
 
-                    <div className="p-badge-row">
-                        <span className="badge safe">HACCP 인증</span>
-                        {product.allergy_text !== '해당없음' && product.allergy_text !== '알수없음' && product.allergy_text && (
-                            <span className="badge warn">알레르기 주의</span>
-                        )}
+                    {/* [수정] '⚠️ 주의 정보' 텍스트는 알레르기 주의 사항이 있을 때만 표시 */}
+                    {warnings.some(w => w.type === 'allergy') && (
+                        <div className="p-warning-title">⚠️ 주의 정보</div>
+                    )}
+
+                    {/* [2. 중간 배치] 사용자 맞춤 알레르기 주의 카드 (사용자가 설정한 알레르기와 일치할 때만 표시) */}
+                    {warnings.some(w => w.type === 'allergy') && (
+                        <div className="p-warning-item warning-allergy" style={{ marginBottom: '10px' }}>
+                            <div className="p-warning-item-header">🚨 알레르기 주의</div>
+                            <div>회원님의 알레르기 설정에 해당하는 성분이 포함되어 있습니다.</div>
+                        </div>
+                    )}
+                    <div className="card">
+                        {/* [1. 상단 배치] 상세 스펙 정보 그리드 (4개 항목) */}
+                        <div className="p-info-grid" style={{ marginBottom: '16px' }}>
+                            {/* 1. 제품 분류 */}
+                            <div className="p-info-box info-default">
+                                <div className="p-info-label">제품 분류</div>
+                                <div className="p-info-val">{product.kind_name || '정보 없음'}</div>
+                            </div>
+
+                            {/* 2. 바코드 번호 */}
+                            <div className="p-info-box info-default">
+                                <div className="p-info-label">바코드 번호</div>
+                                <div className="p-info-val" style={{ fontFamily: 'monospace', letterSpacing: '1px' }}>
+                                    {product.barcode || '등록된 바코드 없음'}
+                                </div>
+                            </div>
+
+                            {/* 3. 품목 보고 번호 */}
+                            <div className="p-info-box info-default">
+                                <div className="p-info-label">품목 보고 번호</div>
+                                <div className="p-info-val">{product.report_no}</div>
+                            </div>
+
+                            {/* 4. 용량 정보 */}
+                            <div className="p-info-box info-default">
+                                <div className="p-info-label">포장 단위(용량)</div>
+                                <div className="p-info-val">{product.capacity || '정보 없음'}</div>
+                            </div>
+                        </div>
+
+
                     </div>
-                </div>
 
-                <div className="card">
-                    <div className="p-warning-title">⚠️ 주의 정보</div>
 
-                    {/* 동적 경고 표시 */}
+
+                    {/* 201 line card box start */}
+
+
+
+
+                    {/* [3. 사용자 맞춤 경고] 동적 경고 표시 (알레르기 외 기타 경고) */}
                     {warnings.length > 0 && (
                         <div className="p-warning-list">
                             {warnings.map((w, idx) => {
-                                let className = "p-warning-item warning-default"; // Default
+                                // 알레르기 경고는 위에서 이미 크게 보여줬으므로 여기선 제외하거나, 상세 메시지만 보여줌
+                                // 사용자가 원한건 "알레르기알떄만 표시"이므로 여기서는 중복을 피하기 위해
+                                // type !== 'allergy' 인 것만 보여주거나, 그대로 두되 위 카드가 "요약" 역할.
+                                // 요청: "알레르기 주의 정보는 사용자가 선택한 알레르기일 때만 표시" -> 위 코드에서 처리됨.
+
+                                let className = "p-warning-item warning-default";
                                 if (w.type === 'allergy' || w.level === 'WARN') {
                                     className = "p-warning-item warning-allergy";
                                 } else if (w.level === 'INFO') {
@@ -225,25 +271,28 @@ const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
                         </div>
                     )}
 
-                    <div className="p-info-grid">
-                        {/* 알레르기 정보 박스 */}
+                    {/* [4. 하단 배치] 알레르기 상세 텍스트 (전체 너비) */}
+                    <div style={{ marginTop: '12px' }}>
                         {(() => {
                             const text = product.allergy_text || '정보 없음';
-                            const isUnknown = ['알수없음', '해당없음', '정보 없음', '', 'None'].includes(text.trim());
-                            const boxClass = isUnknown ? "p-info-box info-default" : "p-info-box info-alert";
+                            // 사용자가 설정한 알레르기와 충돌하는 경우에만 빨간 테두리(info-alert) 적용
+                            const hasUserAllergy = warnings.some(w => w.type === 'allergy');
+                            const boxClass = hasUserAllergy ? "p-info-box info-alert" : "p-info-box info-default";
 
                             return (
-                                <div className={boxClass}>
-                                    <div className="p-info-label">알레르기 정보</div>
-                                    <div className="p-info-val">{text}</div>
+                                <div className={boxClass} style={{ width: '100%', boxSizing: 'border-box' }}>
+                                    <div className="p-info-label" style={{ marginBottom: '6px' }}>알레르기 정보 상세</div>
+                                    <div className="p-info-val" style={{
+                                        whiteSpace: 'pre-wrap',
+                                        lineHeight: '1.6',
+                                        fontSize: '15px',
+                                        wordBreak: 'keep-all'
+                                    }}>
+                                        {text}
+                                    </div>
                                 </div>
                             );
                         })()}
-
-                        <div className="p-info-box info-default">
-                            <div className="p-info-label">제품 분류</div>
-                            <div className="p-info-val">{product.kind_name || '정보 없음'}</div>
-                        </div>
                     </div>
                 </div>
 
@@ -276,19 +325,83 @@ const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
 
                 {!isFromRecommendation && (
                     <div id="recommend">
-                        <div className="section-title">관련 더보기</div>
+                        <div className="section-title">추천 상품</div>
                         <div className="p-rec-desc">
-                            같은 분류({product.kind_name})의 다른 제품들을 찾아보세요.
+                            회원님의 건강 정보(알레르기, 질병)와 현재 상품({product.product_name})을 분석하여 추천합니다.
                         </div>
-                        <button
-                            className="btn p-rec-btn"
-                            onClick={() => navigate('/search', { state: { query: product.kind_name } })}
-                        >
-                            '{product.kind_name}' 검색결과 더보기
-                        </button>
+                        {/* 추천 상품 리스트 렌더링 (상품명 전달) */}
+                        <RecommendationList userInfo={userInfo} navigate={navigate} productName={product.product_name} />
                     </div>
                 )}
             </div>
+        </div>
+    );
+};
+
+// [추가] 추천 상품 목록 컴포넌트
+const RecommendationList = ({ userInfo, navigate }) => {
+    const [recommendations, setRecommendations] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        let isMounted = true;
+        const fetchRecommendations = async () => {
+            try {
+                // 사용자 ID를 쿼리로 보내 안전한 맞춤 추천 요청
+                const userIdParam = (userInfo && userInfo.user_id) ? userInfo.user_id : 'null';
+                const res = await fetch(`http://localhost:3000/api/recommend?userId=${userIdParam}&limit=4`);
+                const data = await res.json();
+
+                if (isMounted) {
+                    setRecommendations(data);
+                }
+            } catch (error) {
+                console.error("추천 로드 실패:", error);
+            } finally {
+                if (isMounted) setLoading(false);
+            }
+        };
+
+        fetchRecommendations();
+
+        return () => { isMounted = false; };
+    }, [userInfo]);
+
+    if (loading) return <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>추천 상품 불러오는 중...</div>;
+    if (recommendations.length === 0) return <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>추천 상품이 없습니다.</div>;
+
+    return (
+        <div className="recommend-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginTop: '10px' }}>
+            {recommendations.map((item) => (
+                <div
+                    key={item.report_no}
+                    className="recommend-item"
+                    onClick={() => navigate('/product', { state: { productId: item.report_no, fromRecommendation: true } })}
+                    style={{ cursor: 'pointer', border: '1px solid #eee', borderRadius: '8px', padding: '10px' }}
+                >
+                    <div
+                        className="recommend-img"
+                        style={{
+                            height: '120px',
+                            backgroundImage: `url(${item.imgurl1})`,
+                            backgroundSize: 'contain',
+                            backgroundPosition: 'center',
+                            backgroundRepeat: 'no-repeat',
+                            backgroundColor: '#f9f9f9',
+                            borderRadius: '4px',
+                            marginBottom: '8px'
+                        }}
+                    >
+                        {!item.imgurl1 && <span style={{ fontSize: '10px', color: '#999', display: 'block', paddingTop: '50px', textAlign: 'center' }}>이미지 없음</span>}
+                    </div>
+                    <div className="recommend-name" style={{ fontSize: '14px', fontWeight: 'bold', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {item.product_name}
+                    </div>
+                    <div className="recommend-price" style={{ fontSize: '12px', color: '#666' }}>
+                        {item.manufacturer}
+                    </div>
+                </div>
+            ))}
         </div>
     );
 };

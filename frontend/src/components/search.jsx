@@ -5,35 +5,27 @@ import { useNavigate } from 'react-router-dom'
 import db from './lib/db'
 import '../styles/dar.css'
 
-const Search = ({ isLoggedIn }) => {
+const Search = ({ isLoggedIn, userInfo }) => {
     // 1. 상태 및 훅 초기화
     const navigate = useNavigate();
     const [recommendItems, setRecommendItems] = useState([]); // 하단 추천 목록 데이터
 
-    // 2. 컴포넌트 마운트 시 추천 상품 로드
+    // 2. 컴포넌트 마운트 시 추천 상품 로드 (API 사용)
     useEffect(() => {
         const fetchRecommendations = async () => {
             try {
-                // SQL 쿼리 실행: products 테이블에서 상위 10개 상품 정보를 조회합니다.
-                const queryResult = await db.execute(`
-                    SELECT 
-                        report_no, 
-                        product_name, 
-                        capacity, 
-                        imgurl1, 
-                        seller 
-                    FROM products 
-                    LIMIT 10
-                `);
+                // [변경] 백엔드 API를 호출하여 랜덤+필터링된 추천 목록을 가져옵니다.
+                // 로그인 시 userInfo.user_id를 보내면 알러지 유발 제품이 자동 제외됩니다.
+                const userIdParam = (userInfo && userInfo.user_id) ? userInfo.user_id : 'null';
+                const res = await fetch(`http://localhost:3000/api/recommend?userId=${userIdParam}&limit=10`);
+                const data = await res.json();
 
-                // 조회된 데이터를 UI에 사용하기 적합한 형태(mapped)로 가공
-                const items = queryResult.map((item, index) => ({
-                    // 리액트 전용 고유 키 생성 (중복 방지)
+                // API 데이터를 UI 포맷에 맞게 변환
+                const items = data.map((item, index) => ({
                     id: `${item.report_no || 'rec'}-${index}`,
-                    // 상세 페이지로 넘길 상품 식별자
                     productId: item.report_no,
                     name: item.product_name,
-                    price: item.capacity || '용량 정보 없음',
+                    price: item.capacity || '용량 정보 없음', // 원래 가격 칸에 용량 정보를 보여줌
                     img: item.imgurl1,
                     seller: item.seller
                 }));
@@ -45,7 +37,7 @@ const Search = ({ isLoggedIn }) => {
         };
 
         fetchRecommendations();
-    }, []);
+    }, [userInfo]); // userInfo가 바뀌면(로그인/로그아웃) 목록 갱신
 
     // 3. 이벤트 핸들러: 페이지 이동 처리
     const handleNavigate = (path, state = {}) => {

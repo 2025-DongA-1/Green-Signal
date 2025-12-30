@@ -1,0 +1,43 @@
+팀원을 위한 '사용 설명서' 코드
+
+python
+
+import joblib
+import os
+
+# 1. 파일 경로 설정 (팀원 컴퓨터 경로에 맞게 수정하라고 하세요)
+MODEL_PATH = 'food_classifier_rf.pkl'
+VECTORIZER_PATH = 'tfidf_vectorizer.pkl'
+
+# 2. 모델과 벡터라이저 불러오기
+print("모델 로딩 중...")
+try:
+    rf_model = joblib.load(MODEL_PATH)
+    vectorizer = joblib.load(VECTORIZER_PATH)
+    print("✅ 로딩 성공!")
+except Exception as e:
+    print(f"❌ 파일 로딩 실패: {e}")
+    exit()
+
+# 3. 테스트해보기 (함수)
+def predict_category(product_name, ingredients):
+    # 입력 데이터를 학습 때와 똑같은 모양("제품명 + 원재료")으로 합침
+    text_data = str(product_name) + " " + str(ingredients)
+    
+    # 벡터라이저로 글자를 숫자로 변환 (transform)
+    # 주의: 여기서 fit_transform을 쓰면 안됨! 그냥 transform!
+    input_vector = vectorizer.transform([text_data])
+    
+    # 모델로 예측
+    category = rf_model.predict(input_vector)[0]
+    probability = rf_model.predict_proba(input_vector).max() * 100
+    
+    return category, probability
+
+# 4. 실제 사용 예시
+name = "스타벅스 에스프레소"
+ingr = "원두 우유 정제수 설탕"
+
+pred, conf = predict_category(name, ingr)
+print(f"\n입력: {name} ({ingr})")
+print(f"결과: [{pred}] (확신도: {conf:.2f}%)")

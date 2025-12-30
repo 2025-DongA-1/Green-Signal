@@ -1,0 +1,196 @@
+**"실전 시뮬레이션"**.
+ [바코드 스캔 → 제품 인식(예측) → 더 건강한 제품 추천] 과정을 완벽하게 구현하는 코드
+
+Python
+
+import pandas as pd
+import pymysql
+import joblib
+import os
+import numpy as np
+
+# ──────────────────────────────────────────────────────────────────
+# 1. 설정 및 모델 로드
+# ──────────────────────────────────────────────────────────────────
+BASE_DIR = r'C:\Users\smhrd\실전프로젝트\csv모음'
+MODEL_PATH = os.path.join(BASE_DIR, 'food_classifier_rf.pkl')
+VECTORIZER_PATH = os.path.join(BASE_DIR, 'tfidf_vectorizer.pkl')
+
+# DB 접속 정보
+DB_CONFIG = {
+    'host': 'localhost',
+    'user': 'root',
+    'password': '1234',
+    'db': 'app_db',
+    'charset': 'utf8mb4',
+    'cursorclass': pymysql.cursors.DictCursor
+}
+
+print("🧠 AI 모델과 벡터라이저를 로딩 중...")
+try:
+    rf_model = joblib.load(MODEL_PATH)
+    vectorizer = joblib.load(VECTORIZER_PATH)
+    print("✅ 로딩 완료!")
+except FileNotFoundError:
+    print("❌ 모델 파일이 없습니다.")
+    exit()
+
+# ──────────────────────────────────────────────────────────────────
+# 2. 핵심 기능: 건강한 대체품 추천 로직
+# ──────────────────────────────────────────────────────────────────
+def find_healthier_alternatives(category, current_sugar, current_kcal, current_report_no=None):
+    conn = pymysql.connect(**DB_CONFIG)
+    recommendations = []
+    
+    try:
+        with conn.cursor() as cursor:
+            # 로직: 같은 카테고리이면서 당류나 칼로리가 더 낮은 제품 찾기
+            # (만약 신제품이라 당류/칼로리 정보가 없으면 9999로 가정하여 무조건 추천받게 함)
+            ref_sugar = float(current_sugar) if current_sugar is not None else 9999
+            ref_kcal = float(current_kcal) if current_kcal is not None else 9999
+            
+            sql = """
+            SELECT 
+                p.product_name, 
+                p.kind_name, 
+                p.manufacturer,
+                n.amt_num1 AS kcal, 
+                n.amt_num7 AS sugar
+            FROM products p
+            LEFT JOIN nutrition_facts_raw n ON p.report_no = n.report_no
+            WHERE p.kind_name = %s
+              AND (n.amt_num7 < %s OR n.amt_num1 < %s)
+            """
+            
+            # DB에 있는 제품이면 자기 자신은 추천 제외
+            params = [category, ref_sugar, ref_kcal]
+            if current_report_no:
+                sql += " AND p.report_no != %s"
+                params.append(current_report_no)
+                
+            sql += " ORDER BY n.amt_num7 ASC, n.amt_num1 ASC LIMIT 3"
+            
+            cursor.execute(sql, tuple(params))
+            recommendations = cursor.fetchall()
+            
+    finally:
+        conn.close()
+    
+    return recommendations
+
+# ──────────────────────────────────────────────────────────────────
+# 3. 메인 기능: 바코드 스캔 시뮬레이션
+# ──────────────────────────────────────────────────────────────────
+def process_scan(input_type, input_value):
+    """
+    input_type: 'barcode' 또는 'raw_text' (신제품 가정)
+    input_value: 바코드 번호 또는 '제품명 + 원재료' 텍스트
+    """
+    conn = pymysql.connect(**DB_CONFIG)
+    product_info = {}
+    
+    print(f"\n📲 [스캔 감지] 입력값: {input_value} ({input_type})")
+    
+    try:
+        with conn.cursor() as cursor:
+            # [Case A] 바코드 스캔 (DB 조회)
+            if input_type == 'barcode':
+                # 1. 바코드로 report_no 찾기
+                sql_barcode = "SELECT report_no FROM product_barcodes WHERE barcode = %s"
+                cursor.execute(sql_barcode, (input_value,))
+                res = cursor.fetchone()
+                
+                if res:
+                    report_no = res['report_no']
+                    # 2. 제품 상세 정보 조회
+                    sql_prod = """
+                    SELECT p.report_no, p.product_name, p.kind_name, 
+                           n.amt_num1 AS kcal, n.amt_num7 AS sugar
+                    FROM products p
+                    LEFT JOIN nutrition_facts_raw n ON p.report_no = n.report_no
+                    WHERE p.report_no = %s
+                    """
+                    cursor.execute(sql_prod, (report_no,))
+                    product_info = cursor.fetchone()
+                    print(f"   ➡ DB 매칭 성공! : {product_info['product_name']} ({product_info['kind_name']})")
+                else:
+                    print("   ➡ DB에 없는 바코드입니다. (신제품으로 간주)")
+            
+            # [Case B] 신제품 (또는 DB에 없는 제품) -> AI 예측 실행
+            if not product_info:
+                print("🤖 AI 모델이 카테고리를 분석합니다...")
+                # 신제품이라고 가정하고 텍스트(이름+원재료)를 받는다고 칩시다.
+                # 테스트를 위해 임의의 텍스트를 사용하겠습니다.
+                if input_type == 'barcode':
+                     # 바코드만 있고 정보가 없으면 예측 불가하므로 가상의 텍스트 사용 (시연용)
+                     dummy_text = "신제품 초코 라떼 우유 설탕 코코아 분말"
+                     print(f"   (신제품 정보 수동 입력 가정: '{dummy_text}')")
+                     input_value = dummy_text
+                
+                # 예측 수행
+                input_vec = vectorizer.transform([input_value])
+                predicted_category = rf_model.predict(input_vec)[0]
+                proba = np.max(rf_model.predict_proba(input_vec)) * 100
+                
+                print(f"   ➡ AI 예측 결과: '{predicted_category}' (확신도: {proba:.2f}%)")
+                
+                product_info = {
+                    'product_name': '알 수 없는 신제품',
+                    'kind_name': predicted_category,
+                    'sugar': None, # 정보 없음
+                    'kcal': None,
+                    'report_no': None
+                }
+
+        # ──────────────────────────────────────────────────────────────
+        # 4. 결과 및 추천 출력
+        # ──────────────────────────────────────────────────────────────
+        print("-" * 50)
+        print(f"📌 [제품 정보]")
+        print(f"   제품명: {product_info.get('product_name')}")
+        print(f"   카테고리: {product_info['kind_name']}")
+        print(f"   영양성분: 당류 {product_info.get('sugar', '?')}g, 열량 {product_info.get('kcal', '?')}kcal")
+        print("-" * 50)
+        
+        # 추천 받기
+        recs = find_healthier_alternatives(
+            product_info['kind_name'], 
+            product_info.get('sugar'), 
+            product_info.get('kcal'),
+            product_info.get('report_no')
+        )
+        
+        print(f"🥗 [{product_info['kind_name']}] 카테고리의 더 건강한 추천 제품!")
+        if recs:
+            for i, r in enumerate(recs, 1):
+                s_val = f"{r['sugar']}g" if r['sugar'] is not None else "?g"
+                k_val = f"{r['kcal']}kcal" if r['kcal'] is not None else "?kcal"
+                print(f"   {i}. {r['product_name']} (제조: {r['manufacturer']})")
+                print(f"      └ 당류 {s_val}, 열량 {k_val}")
+        else:
+            print("   (이미 가장 건강한 제품이거나, 추천할 대안이 없습니다)")
+        print("-" * 50)
+
+    except Exception as e:
+        print(f"❌ 오류 발생: {e}")
+    finally:
+        conn.close()
+
+# ──────────────────────────────────────────────────────────────────
+# [테스트 시나리오]
+# ──────────────────────────────────────────────────────────────────
+
+# 1. DB에 있는 바코드 스캔 (예: 콜라, 두유 등 본인 DB에 있는 바코드 입력)
+# (실제 바코드를 몰라서 임의의 숫자를 넣습니다. 본인 DB 바코드로 바꿔보세요)
+print("\n🔵 시나리오 1: DB에 있는 제품 스캔")
+process_scan('barcode', '8801069182438') 
+
+# 2. DB에 없는 신제품 텍스트 입력 (AI 예측 테스트)
+print("\n\n🔵 시나리오 2: 신제품 데이터 입력 (AI 예측)")
+# 모델이 '커피'로 예측해야 함
+process_scan('raw_text', '스타벅스 더블샷 에스프레소 크림 커피원두 우유') 
+
+# 3. 헷갈리는 제품 입력
+print("\n\n🔵 시나리오 3: 헷갈리는 신제품 입력")
+# 모델이 '과채음료'로 예측해야 함
+process_scan('raw_text', '자연은 100% 제주 감귤 주스 농축액 설탕 정제수')

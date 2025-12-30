@@ -1,5 +1,9 @@
 {
   "appId": "com.example.projectp2",
   "appName": "ProjectP2",
-  "webDir": "dist"
+  "webDir": "dist",
+  "server": {
+    "url": "http://192.168.219.74:5173",
+    "cleartext": true
+  }
 }

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import { Html5Qrcode } from 'html5-qrcode';
 import { Camera } from '@capacitor/camera';
 
 import db from './lib/db.js'
@@ -80,46 +80,71 @@ const SearchDetail = ({ isLoggedIn }) => {
         checkPermission();
     }, []);
 
-    // [바코드 스캔: 스캐너 초기화 및 가동]
+    // [바코드 스캔: 카메라 직접 제어 (Html5Qrcode 사용)]
     useEffect(() => {
-        if (!isScanning) {
+        // [1] 스캔 모드가 아니거나 권한 없으면 종료
+        if (!isScanning || !isPermissionGranted) {
+            // 스캐너 인스턴스가 살아있다면 정리(stop)
             if (scannerRef.current) {
-                try { scannerRef.current.clear(); } catch { /* ignore */ }
-                scannerRef.current = null;
+                scannerRef.current.stop().then(() => {
+                    scannerRef.current.clear();
+                    scannerRef.current = null;
+                }).catch(err => {
+                    console.error("스캐너 중지 실패", err);
+                    scannerRef.current = null;
+                });
             }
             return;
         }
 
-        if (!isPermissionGranted) return;
+        // [2] 이미 실행 중이면 중복 실행 방지
         if (scannerRef.current) return;
 
-        const timer = setTimeout(() => {
-            try {
-                const scanner = new Html5QrcodeScanner(
-                    "reader",
-                    { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
-                    false
-                );
-                scannerRef.current = scanner;
+        const html5QrCode = new Html5Qrcode("reader");
+        scannerRef.current = html5QrCode;
 
-                scanner.render((decodedText) => {
-                    // 스캔 성공 시
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+        // [3] 카메라 시작 (후면 카메라 강제: { exact: "environment" })
+        html5QrCode.start(
+            { facingMode: { exact: "environment" } },
+            config,
+            (decodedText) => {
+                // 스캔 성공 시
+                setSearchQuery(decodedText);
+                filterResults(decodedText);
+                setIsScanning(false); // 성공 즉시 스캔 종료
+            },
+            (errorMessage) => {
+                // 스캔 중 에러(인식 실패 등)는 로그만 남기고 무시
+                // console.log(errorMessage);
+            }
+        ).catch((err) => {
+            console.error("후면 카메라 실행 실패, 일반 모드로 재시도:", err);
+            // 후면 강제 실패 시(PC 등), 일반 모드(facingMode: "environment" without exact)로 재시도
+            html5QrCode.start(
+                { facingMode: "environment" },
+                config,
+                (decodedText) => {
                     setSearchQuery(decodedText);
                     filterResults(decodedText);
-                    setIsScanning(false); // 스캔 성공 시 카메라 종료
+                    setIsScanning(false);
+                },
+                () => { }
+            ).catch(err2 => {
+                console.error("카메라 실행 최종 실패:", err2);
+                alert("카메라를 실행할 수 없습니다. 권한을 확인해주세요.");
+                setIsScanning(false);
+            });
+        });
 
-                    try { scanner.clear(); } catch { /* ignore */ }
-                    scannerRef.current = null;
-                }, () => { });
-            } catch (e) {
-                console.error(e);
-            }
-        }, 300);
-
+        // 컴포넌트 언마운트 시 정리
         return () => {
-            clearTimeout(timer);
             if (scannerRef.current) {
-                try { scannerRef.current.clear(); } catch { /* ignore */ }
+                if (scannerRef.current.isScanning) {
+                    scannerRef.current.stop().catch(console.error);
+                }
+                scannerRef.current.clear();
                 scannerRef.current = null;
             }
         };

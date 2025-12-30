@@ -38,44 +38,34 @@ function App() {
       const data = await db.execute(query, [userId]);
       setFavorites(data || []);
     } catch (e) {
-      console.error('즐겨찾기 로드 ?�패:', e);
+      console.error('즐겨찾기 로드 ?패:', e);
     }
   };
 
-  // 컴포?�트 마운????초기 로그???�태 ?�인 �??�이??로드 + ?�셜 로그???�큰 처리
+  // 컴포?트 마운????초기 로그???태 ?인 ??이??로드 + ?셜 로그???큰 처리
+  // 컴포넌트 마운트 시 초기 로그인 상태 확인 및 Deep Link 리스너 등록
   useEffect(() => {
-    // 1. ?�셜 로그???�큰 처리 (URL 쿼리 ?�라미터 ?�인)
+    // [1] 안드로이드 Deep Link 리스너 (앱으로 복귀 시 토큰 처리)
+    import('@capacitor/app').then(({ App: CapApp }) => {
+      CapApp.addListener('appUrlOpen', (event) => {
+        // URL 파싱: projectp2://callback?token=...
+        const url = new URL(event.url);
+        const tokenFromDeepLink = url.searchParams.get("token");
+
+        if (tokenFromDeepLink) {
+          processToken(tokenFromDeepLink); // 토큰 처리 함수 호출
+        }
+      });
+    }).catch(err => console.log("Capacitor App plugin not found (web mode)", err));
+
+    // [2] 웹 URL 쿼리 파라미터 확인 (브라우저 복귀 시)
     const params = new URLSearchParams(window.location.search);
     const tokenFromUrl = params.get("token");
 
     if (tokenFromUrl) {
-      localStorage.setItem("token", tokenFromUrl);
-
-      // ?�큰 ?�코??(간단?�게 payload�??�석)
-      try {
-        const payload = JSON.parse(atob(tokenFromUrl.split('.')[1]));
-        const userData = {
-          user_id: payload.id || payload.user_id, // id ?�는 user_id ?????�인
-          email: payload.email,
-          role: payload.role,
-          provider: payload.provider, // google or kakao
-          nickname: payload.nickname || (payload.email ? payload.email.split('@')[0] : 'User')
-        };
-        localStorage.setItem("user", JSON.stringify(userData));
-
-        // ?�태 ?�데?�트
-        setLoggedIn(true);
-        setUserInfo(userData);
-        setShowLoginModal(false); // ??로그??모달 ?�기 추�?
-        fetchFavorites(userData.user_id);
-
-        // URL ?�리 (?�큰 ?�거)
-        window.history.replaceState({}, document.title, "/");
-      } catch (e) {
-        console.error("Token parsing error:", e);
-      }
+      processToken(tokenFromUrl);
     } else {
-      // 2. 기존 로컬 ?�토리�? 로그???�인
+      // 3. 기존 로컬 스토리지 로그인 확인
       const token = localStorage.getItem('token');
       const user = localStorage.getItem('user');
 
@@ -90,12 +80,40 @@ function App() {
     }
   }, []);
 
-  // [기능: 즐겨찾기 추�?/??��]
-  // ?�용?��? ?�트 버튼???�릭?�을 ???�출?�니??
-  // DB??즐겨찾기 ?�이?��? 추�??�거?? ?��? 존재?�면 ??��?�니??
+  // 토큰 처리 및 로그인 완료 로직 분리
+  const processToken = (tokenStr) => {
+    if (!tokenStr) return;
+    localStorage.setItem("token", tokenStr);
+    try {
+      const payload = JSON.parse(atob(tokenStr.split('.')[1]));
+      const userData = {
+        user_id: payload.id || payload.user_id,
+        email: payload.email,
+        role: payload.role,
+        provider: payload.provider,
+        nickname: payload.nickname || (payload.email ? payload.email.split('@')[0] : 'User')
+      };
+      localStorage.setItem("user", JSON.stringify(userData));
+
+      setLoggedIn(true);
+      setUserInfo(userData);
+      setShowLoginModal(false);
+      fetchFavorites(userData.user_id);
+
+      // URL 정리
+      if (window.history.replaceState) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    } catch (e) {
+      console.error("Token pars error:", e);
+    }
+  };
+
+  // [기능: 즐겨찾기 추?/??]
+  // ?용?? ?트 버튼???릭?을 ???출?니??
+  // DB??즐겨찾기 ?이?? 추??거?? ?? 존재?면 ???니??
   const toggleFavorite = async (product) => {
     if (!isLoggedIn || !userInfo || !userInfo.user_id) {
-      console.error("로그???�보 부�?", userInfo);
       alert('로그???�보가 ?�바르�? ?�습?�다. ?�시 로그?�해주세??');
       setShowLoginModal(true);
       return;
@@ -173,7 +191,7 @@ function App() {
     setUserInfo(user);
     setShowLoginModal(false);
     fetchFavorites(user.user_id); // 로그???�공 ???�이??로드
-        alert(`ȯ���մϴ� ${user.nickname || "�����"}`);
+    alert(`ȯ���մϴ� ${user.nickname || "�����"}`);
   };
 
   return (

@@ -5,6 +5,11 @@ import db from './lib/db';
 import '../styles/dar.css';
 import "../styles/ProductDetailMain.css";
 
+const API_BASE =
+    import.meta.env.VITE_API_BASE ||
+    import.meta.env.VITE_API_URI ||
+    "http://192.168.219.74:3000";
+
 const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
     // 1. 상태 및 라우팅 관련 정의
     const [activeTab, setActiveTab] = useState('summary');
@@ -55,7 +60,7 @@ const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
 
                     // [추가] 안전성(알러지/지병) 검사 실행
                     if (userInfo && userInfo.user_id) {
-                        fetch(`http://localhost:3000/api/product/check-safety?reportNo=${found.report_no}&userId=${userInfo.user_id}`)
+                        fetch(`${API_BASE}/api/product/check-safety?reportNo=${found.report_no}&userId=${userInfo.user_id}`)
                             .then(res => res.json())
                             .then(data => setWarnings(data.warnings || []))
                             .catch(e => console.error("Warning fetch error:", e));
@@ -353,7 +358,7 @@ const RecommendationList = ({ userInfo, navigate }) => {
             try {
                 // 사용자 ID를 쿼리로 보내 안전한 맞춤 추천 요청
                 const userIdParam = (userInfo && userInfo.user_id) ? userInfo.user_id : 'null';
-                const res = await fetch(`http://localhost:3000/api/recommend?userId=${userIdParam}&limit=4`);
+                const res = await fetch(`${API_BASE}/api/recommend?userId=${userIdParam}&limit=4`);
                 const data = await res.json();
 
                 if (isMounted) {

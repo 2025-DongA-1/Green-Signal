@@ -2,6 +2,11 @@
 import React, { useState } from "react";
 import API from "../utils/axiosInstance";
 
+const API_BASE =
+  import.meta.env.VITE_API_BASE ||
+  import.meta.env.VITE_API_URI ||
+  "http://192.168.219.74:3000";
+
 const RegisterPage = ({ onClose, onSuccess }) => {
   const [tab, setTab] = useState("login");
   const [email, setEmail] = useState("");
@@ -13,7 +18,7 @@ const RegisterPage = ({ onClose, onSuccess }) => {
 
   // ✅ 카카오/구글 로그인
   const handleOAuth = (provider) => {
-    window.location.href = `http://localhost:3000/auth/${provider}`;
+    window.location.href = `${API_BASE}/auth/${provider}`;
   };
 
   // ✅ 로컬 로그인

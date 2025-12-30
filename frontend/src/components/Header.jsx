@@ -15,17 +15,13 @@ const Header = ({ onMenuClick, isLoggedIn }) => {
 
             {/* 좌측: 기록 버튼 (로그인 시에만 노출) */}
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                {isLoggedIn && (
-                    <>
-                        <i
-                            style={{ fontStyle: 'normal', fontSize: '14px', cursor: 'pointer' }}
-                            onClick={() => navigate('/favorites')}
-                        >
-                            즐겨찾기
-                        </i>
-                        <span style={{ color: '#e5e7eb' }}>|</span>
-                    </>
-                )}
+                <i
+                    style={{ fontStyle: 'normal', fontSize: '14px', cursor: 'pointer' }}
+                    onClick={() => navigate('/recommend')}
+                >
+                    AI 추천
+                </i>
+                <span style={{ color: '#e5e7eb' }}>|</span>
             </div>
 
             {/* 중앙: 로고 */}

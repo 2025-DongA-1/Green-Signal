@@ -33,7 +33,7 @@ const History = ({ isLoggedIn, userInfo }) => {
                     FROM scan_history h
                     LEFT JOIN products p ON h.report_no = p.report_no
                     WHERE h.user_id = ?
-                    ORDER BY h.timestamp DESC
+                    ORDER BY h.scanned_at DESC
                 `;
                 const data = await db.execute(query, [userInfo.user_id]);
 

@@ -1,13 +1,18 @@
-const fs = require('fs');
-const path = require('path');
-const mysql = require('mysql2/promise');
-require('dotenv').config();
+import fs from 'fs';
+import path from 'path';
+import mysql from 'mysql2/promise';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+
+dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * [JSON 데이터를 MySQL로 마이그레이션하는 스크립트]
  */
 async function migrate() {
-    const jsonPath = path.join(__dirname, '../project/public/products.json');
+    const jsonPath = path.join(__dirname, '../project/dist/products.json');
     
     if (!fs.existsSync(jsonPath)) {
         console.error('❌ products.json 파일을 찾을 수 없습니다.');

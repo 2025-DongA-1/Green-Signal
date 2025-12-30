@@ -1,0 +1,20 @@
+﻿import mysql from "mysql2/promise";
+import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.join(__dirname, '.env') });
+const cfg = { host: process.env.DB_HOST, user: process.env.DB_USER, password: process.env.DB_PASSWORD, database: process.env.DB_NAME, port: process.env.DB_PORT };
+const CSV = "C:/ProgramData/MySQL/MySQL Server 8.0/Uploads/product_allergens.csv";
+const run = async () => {
+  const c = await mysql.createConnection(cfg);
+  await c.query("DROP TABLE IF EXISTS product_allergens_stage_tmp");
+  await c.query("CREATE TABLE product_allergens_stage_tmp (report_no VARCHAR(50), seq INT, allergen_id INT, raw_token TEXT)");
+  await c.query(`LOAD DATA INFILE '${CSV.replace(/\\/g,'/')}' INTO TABLE product_allergens_stage_tmp CHARACTER SET utf8mb4 FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\\r\\n' IGNORE 1 ROWS`);
+  const [[cnt]] = await c.query('SELECT COUNT(*) c FROM product_allergens_stage_tmp');
+  const [sample] = await c.query('SELECT * FROM product_allergens_stage_tmp LIMIT 5');
+  console.log({count: cnt.c, sample});
+  await c.end();
+};
+run();

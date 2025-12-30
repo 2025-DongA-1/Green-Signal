@@ -69,21 +69,20 @@ const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
                             found.report_no,
                             found.product_name,
                             'OK',
-                            new Date().toISOString().slice(0, 19).replace('T', ' '),
-                            Date.now()
+                            new Date().toISOString().slice(0, 19).replace('T', ' ')
                         ];
 
                         await db.execute('DELETE FROM scan_history WHERE report_no = ? AND user_id = ?', [found.report_no, userInfo.user_id]);
                         await db.execute(
-                            'INSERT INTO scan_history (user_id, barcode, report_no, product_name_snapshot, warning_level_snapshot, scanned_at, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                            'INSERT INTO scan_history (user_id, barcode, report_no, product_name_snapshot, warning_level_snapshot, scanned_at) VALUES (?, ?, ?, ?, ?, ?)',
                             historyValues
                         );
 
                         // 히스토리 개수 제한
-                        const currentHistory = await db.execute('SELECT timestamp FROM scan_history WHERE user_id = ? ORDER BY timestamp DESC', [userInfo.user_id]);
+                        const currentHistory = await db.execute('SELECT scanned_at FROM scan_history WHERE user_id = ? ORDER BY scanned_at DESC', [userInfo.user_id]);
                         if (currentHistory.length > 20) {
-                            const thresholdTimestamp = currentHistory[19].timestamp;
-                            await db.execute('DELETE FROM scan_history WHERE user_id = ? AND timestamp < ?', [userInfo.user_id, thresholdTimestamp]);
+                            const thresholdTimestamp = currentHistory[19].scanned_at;
+                            await db.execute('DELETE FROM scan_history WHERE user_id = ? AND scanned_at < ?', [userInfo.user_id, thresholdTimestamp]);
                         }
                     } else {
                         console.log('로그인하지 않아 히스토리를 저장하지 않습니다.');

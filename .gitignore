@@ -28,4 +28,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
->>>>>>> 009c9d0 (Initial commit of Project1 React App)
+
+# Exclude large JDK folder
+frontend/android/app/src/main/oracleJdk-25/

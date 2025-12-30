@@ -1,7 +1,7 @@
 // frontend/src/lib/api.js
 import axios from "axios";
 
-const BASE = import.meta.env.VITE_API_BASE || "http://localhost:3000";
+const BASE = import.meta.env.VITE_API_BASE || "http://192.168.219.74:3000";
 
 const api = axios.create({
   baseURL: BASE,

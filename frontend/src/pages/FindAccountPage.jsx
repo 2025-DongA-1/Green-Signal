@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 
 export default function FindAccountPage() {
-  const API = import.meta.env.VITE_API_BASE || "http://localhost:3000";
+  const API = import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_URI || "http://192.168.219.74:3000";
   const [email, setEmail] = useState("");
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);

@@ -1,8 +1,13 @@
 import axios from "axios";
 
-// 기본 인스턴스 생성
+const API_BASE =
+  import.meta.env.VITE_API_BASE ||
+  import.meta.env.VITE_API_URI ||
+  "http://192.168.219.74:3000";
+
+// 기본 Axios 인스턴스 생성
 const axiosInstance = axios.create({
-  baseURL: "http://localhost:3000",
+  baseURL: API_BASE,
 });
 
 // 요청 인터셉터: accessToken 헤더에 추가
@@ -12,7 +17,7 @@ axiosInstance.interceptors.request.use((config) => {
   return config;
 });
 
-// 응답 인터셉터: accessToken 만료 시 자동 갱신
+// 응답 인터셉터: 403 시 리프레시 후 재시도
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -21,7 +26,7 @@ axiosInstance.interceptors.response.use(
       originalRequest._retry = true;
       try {
         const refreshToken = localStorage.getItem("refreshToken");
-        const res = await axios.post("http://localhost:3000/auth/refresh", {
+        const res = await axios.post(`${API_BASE}/auth/refresh`, {
           token: refreshToken,
         });
         const newAccessToken = res.data.accessToken;

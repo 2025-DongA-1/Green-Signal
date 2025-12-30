@@ -2,7 +2,7 @@ import axios from "axios";
 
 // 기본 인스턴스 생성
 const axiosInstance = axios.create({
-  baseURL: "http://localhost:3000",
+  baseURL: "http://192.168.219.74:3000",
 });
 
 // 요청 인터셉터: accessToken 헤더에 추가

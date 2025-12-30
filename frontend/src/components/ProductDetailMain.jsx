@@ -14,8 +14,12 @@ const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
     const navigate = useNavigate();
     const location = useLocation();
 
-    // 이전 페이지(목록 등)에서 넘겨준 상품 식별자 수신
-    const productId = location.state?.productId;
+    // URL 쿼리 파라미터 파싱
+    const queryParams = new URLSearchParams(location.search);
+    const reportNoFromQuery = queryParams.get('reportNo');
+
+    // 이전 페이지(목록 등)에서 넘겨준 상품 식별자 수신 (state 우선 -> 쿼리 파라미터 백업)
+    const productId = location.state?.productId || reportNoFromQuery;
     // 추천 목록을 통해 들어왔는지 여부 (화면 UI 조절용)
     const isFromRecommendation = location.state?.fromRecommendation;
 
@@ -349,7 +353,7 @@ const RecommendationList = ({ userInfo, navigate }) => {
             try {
                 // 사용자 ID를 쿼리로 보내 안전한 맞춤 추천 요청
                 const userIdParam = (userInfo && userInfo.user_id) ? userInfo.user_id : 'null';
-                const res = await fetch(`http://localhost:3000/api/recommend?userId=${userIdParam}&limit=4`);
+                const res = await fetch(`http://192.168.219.74:3000/api/recommend?userId=${userIdParam}&limit=4`);
                 const data = await res.json();
 
                 if (isMounted) {

@@ -11,18 +11,18 @@ const AdminPage = () => {
   }, []);
 
   const fetchUsers = async () => {
-    const res = await axios.get("http://localhost:3000/users");
+    const res = await axios.get("http://192.168.219.74:3000/users");
     setUsers(res.data);
   };
 
   const handleRoleChange = async (id, newRole) => {
-    await axios.put(`http://localhost:3000/users/${id}`, { role: newRole });
+    await axios.put(`http://192.168.219.74:3000/users/${id}`, { role: newRole });
     fetchUsers();
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm("정말 삭제하시겠습니까?")) return;
-    await axios.delete(`http://localhost:3000/users/${id}`);
+    await axios.delete(`http://192.168.219.74:3000/users/${id}`);
     fetchUsers();
   };
 

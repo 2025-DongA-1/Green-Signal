@@ -11,7 +11,7 @@ import ProductDetailMain from './components/ProductDetailMain'
 import History from './components/History'
 import Favorites from './components/Favorites'
 import Sidebar from './components/Sidebar'
-import AuthModal from './components/AuthModal' // ??변�? AuthModal import
+import AuthModal from './components/AuthModal'
 import { ProfilePlaceholder, SourcePlaceholder } from './components/Placeholders'
 import MyPage from './components/MyPage'
 import Recommend from './components/Recommend'
@@ -20,29 +20,28 @@ function App() {
   const [favorites, setFavorites] = useState([])
   const [isSidebarOpen, setSidebarOpen] = useState(false)
   const [isLoggedIn, setLoggedIn] = useState(false)
-  const [showLoginModal, setShowLoginModal] = useState(false) // ??추�?: 로그??모달 ?�태
-  const [userInfo, setUserInfo] = useState(null) // ??추�?: 로그???��? ?�보
+  const [showLoginModal, setShowLoginModal] = useState(false)
+  const [userInfo, setUserInfo] = useState(null)
 
-  // 공통: 즐겨찾기 ?�이??로드 ?�수
+  // 공통: 즐겨찾기 데이터 로드 함수
   const fetchFavorites = async (userId) => {
     if (!userId) return;
     try {
-      // DB?�서 즐겨찾기 목록??조회 (?�품 ?�이블과 조인?�여 ?��?지 URL 가?�오�?
-      // ?�정 ?��?(user_id)??즐겨찾기�?조회
+      // DB에서 즐겨찾기 목록 조회 (상품 테이블과 조인하여 이미지 URL, 상품명 등 가져오기)
       const query = `
-          SELECT f.*, p.imgurl1 
+          SELECT f.*, p.product_name, p.manufacturer, p.imgurl1, p.capacity
           FROM favorites f 
           LEFT JOIN products p ON f.report_no = p.report_no
           WHERE f.user_id = ?
+          ORDER BY f.created_at DESC
         `;
       const data = await db.execute(query, [userId]);
       setFavorites(data || []);
     } catch (e) {
-      console.error('즐겨찾기 로드 ?패:', e);
+      console.error('즐겨찾기 로드 실패:', e);
     }
   };
 
-  // 컴포?트 마운????초기 로그???태 ?인 ??이??로드 + ?셜 로그???큰 처리
   // 컴포넌트 마운트 시 초기 로그인 상태 확인 및 Deep Link 리스너 등록
   useEffect(() => {
     // [1] 안드로이드 Deep Link 리스너 (앱으로 복귀 시 토큰 처리)
@@ -105,59 +104,48 @@ function App() {
         window.history.replaceState({}, document.title, window.location.pathname);
       }
     } catch (e) {
-      console.error("Token pars error:", e);
+      console.error("Token parse error:", e);
     }
   };
 
-  // [기능: 즐겨찾기 추?/??]
-  // ?용?? ?트 버튼???릭?을 ???출?니??
-  // DB??즐겨찾기 ?이?? 추??거?? ?? 존재?면 ???니??
+  // [기능: 즐겨찾기 추가/삭제]
   const toggleFavorite = async (product) => {
     if (!isLoggedIn || !userInfo || !userInfo.user_id) {
-      alert('로그???�보가 ?�바르�? ?�습?�다. ?�시 로그?�해주세??');
+      alert('로그인 정보가 없습니다. 로그인 후 다시 시도해주세요.');
       setShowLoginModal(true);
       return;
     }
 
-    // ?�품 고유 번호 추출 (?�이???�스???�라 ?�드명이 ?��? ???�음)
-    console.log("Toggle Favorite Product:", product); // ?�버깅용 로그
+    console.log("Toggle Favorite Product:", product);
     const reportNo = product.report_no || product.prdlstReportNo;
 
-    // reportNo가 ?�으�?중단
     if (!reportNo) {
       console.error("No report_no found for product:", product);
       return;
     }
 
-    // ?�재 즐겨찾기 목록???�당 ?�품???�는지 ?�인
+    // 즐겨찾기 목록에 이미 있는지 확인
     const isExist = favorites.find(item => String(item.report_no || item.prdlstReportNo) === String(reportNo));
 
     try {
       if (isExist) {
-        // [??�� 로직] ?��? 존재?�면 DB?�서 ??�� (?�당 ?��???것만)
+        // [삭제 로직]
         await db.execute('DELETE FROM favorites WHERE report_no = ? AND user_id = ?', [reportNo, userInfo.user_id]);
-        // ?�면 목록?�서??즉시 ?�거
         setFavorites(prev => prev.filter(item => (item.report_no || item.prdlstReportNo) !== reportNo));
       } else {
-        // [추�? 로직] 존재?��? ?�으�?DB??추�? (최�? 50�??�한)
+        // [추가 로직]
         if (favorites.length >= 50) {
-          alert('즐겨찾기??최�? 50개까지�??�록?????�습?�다.');
+          alert('즐겨찾기는 최대 50개까지 등록 가능합니다.');
           return;
         }
 
-        const favValues = [
-          userInfo.user_id, // ?�제 로그???��? ID
-          reportNo,
-          product.product_name || product.product_name_snapshot || product.prdlstNm,
-          product.manufacturer || product.manufacture,
-          'safe',
-          '?�� ?�전', // grade_text
-          new Date().toISOString().slice(0, 19).replace('T', ' ') // MySQL DATETIME format
-        ];
-
         await db.execute(
-          'INSERT INTO favorites (user_id, report_no, product_name, manufacturer, grade, grade_text, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-          favValues
+          'INSERT INTO favorites (user_id, report_no, created_at) VALUES (?, ?, ?)',
+          [
+            userInfo.user_id,
+            reportNo,
+            new Date().toISOString().slice(0, 19).replace('T', ' ')
+          ]
         );
 
         const newItem = {
@@ -166,32 +154,32 @@ function App() {
           product_name: product.product_name || product.product_name_snapshot || product.prdlstNm,
           manufacturer: product.manufacturer || product.manufacture,
           grade: 'safe',
-          grade_text: '?�� ?�전',
+          grade_text: '안전',
           created_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
-          imgurl1: product.imgurl1 // ?��?지 URL 추�?
+          imgurl1: product.imgurl1
         };
         setFavorites(prev => [newItem, ...prev]);
       }
     } catch (e) {
-      console.error('즐겨찾기 ?��? ?�패:', e);
+      console.error('즐겨찾기 추가/삭제 실패:', e);
     }
   };
 
   const handleLogout = () => {
     setLoggedIn(false);
     setUserInfo(null);
-    setFavorites([]); // 즐겨찾기 목록 초기??
+    setFavorites([]);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    alert('로그?�웃 ?�었?�니??');
+    alert('로그아웃 되었습니다.');
   };
 
   const handleLoginSuccess = (user) => {
     setLoggedIn(true);
     setUserInfo(user);
     setShowLoginModal(false);
-    fetchFavorites(user.user_id); // 로그???�공 ???�이??로드
-    alert(`ȯ���մϴ� ${user.nickname || "�����"}`);
+    fetchFavorites(user.user_id);
+    alert(`로그인 성공! 환영합니다, ${user.nickname || "회원"}님.`);
   };
 
   return (
@@ -205,8 +193,8 @@ function App() {
         userInfo={userInfo}
         onLogout={handleLogout}
         onLoginClick={() => {
-          setSidebarOpen(false); // ?�이?�바 ?�고
-          setShowLoginModal(true); // 로그??�??�기
+          setSidebarOpen(false);
+          setShowLoginModal(true);
         }}
       />
 
@@ -236,7 +224,6 @@ function App() {
         onOpenLogin={() => setShowLoginModal(true)}
       />
 
-      {/* 글로벌 로그??모달 */}
       <AuthModal
         open={showLoginModal}
         onClose={() => setShowLoginModal(false)}
@@ -247,9 +234,3 @@ function App() {
 }
 
 export default App
-
-
-
-
-
-

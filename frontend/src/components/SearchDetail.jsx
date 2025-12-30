@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Html5Qrcode } from 'html5-qrcode';
+import { BarcodeScanner } from '@capacitor-mlkit/barcode-scanning';
 import { Camera } from '@capacitor/camera';
 
 import db from './lib/db.js'
@@ -63,92 +62,52 @@ const SearchDetail = ({ isLoggedIn }) => {
         }
     }
 
-    // [바코드 스캔: 카메라 권한 체크]
+    // [바코드 스캔: Native MLKit 사용]
     useEffect(() => {
-        const checkPermission = async () => {
-            try {
-                const result = await Camera.checkPermissions();
-                if (result.camera === 'granted') setIsPermissionGranted(true);
-                else {
-                    const request = await Camera.requestPermissions({ permissions: ['camera'] });
-                    if (request.camera === 'granted' || request.camera === 'limited') setIsPermissionGranted(true);
-                }
-            } catch {
-                setIsPermissionGranted(true); // 웹 환경 대응
-            }
+        const initScanner = async () => {
+            // MLKit은 별도 초기화 불필요, 하지만 리스너 등 설정 가능
         };
-        checkPermission();
+        initScanner();
     }, []);
 
-    // [바코드 스캔: 카메라 직접 제어 (Html5Qrcode 사용)]
-    useEffect(() => {
-        // [1] 스캔 모드가 아니거나 권한 없으면 종료
-        if (!isScanning || !isPermissionGranted) {
-            // 스캐너 인스턴스가 살아있다면 정리(stop)
-            if (scannerRef.current) {
-                scannerRef.current.stop().then(() => {
-                    scannerRef.current.clear();
-                    scannerRef.current = null;
-                }).catch(err => {
-                    console.error("스캐너 중지 실패", err);
-                    scannerRef.current = null;
-                });
+    const startScan = async () => {
+        try {
+            // 1. 권한 확인 및 요청
+            const { camera } = await BarcodeScanner.requestPermissions();
+            if (camera !== 'granted' && camera !== 'limited') {
+                alert('카메라 권한이 거부되었습니다. 설정에서 권한을 허용해주세요.');
+                return;
             }
-            return;
+
+            setIsScanning(true);
+
+            // 2. 스캔 시작 (Native UI 오버레이 또는 풀스크린)
+            const { barcodes } = await BarcodeScanner.scan();
+
+            if (barcodes.length > 0) {
+                const scannedValue = barcodes[0].rawValue;
+                setSearchQuery(scannedValue);
+                filterResults(scannedValue);
+            }
+        } catch (error) {
+            console.error('Barcode Scan Error:', error);
+            if (error.message.includes('canceled')) {
+                // 사용자가 취소한 경우 무시
+            } else {
+                alert('바코드 스캔 중 오류가 발생했습니다: ' + error.message);
+            }
+        } finally {
+            setIsScanning(false);
         }
+    };
 
-        // [2] 이미 실행 중이면 중복 실행 방지
-        if (scannerRef.current) return;
+    // 기존 html5-qrcode 관련 useEffect는 제거됨
+    // 스캔 버튼 클릭 시 setIsScanning(!isScanning) 대신 startScan() 호출하도록 변경 필요하므로
+    // 아래에서 버튼 핸들러를 수정해야 함.
+    // 하지만 여기서는 useEffect 내의 로직만 교체하고 있음.
+    // 버튼 onClick 핸들러도 수정해야 하므로 이 tool call 하나로는 부족할 수 있음.
+    // 우선 useEffect 부분과 권한 로직을 정리.
 
-        const html5QrCode = new Html5Qrcode("reader");
-        scannerRef.current = html5QrCode;
-
-        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-
-        // [3] 카메라 시작 (후면 카메라 강제: { exact: "environment" })
-        html5QrCode.start(
-            { facingMode: { exact: "environment" } },
-            config,
-            (decodedText) => {
-                // 스캔 성공 시
-                setSearchQuery(decodedText);
-                filterResults(decodedText);
-                setIsScanning(false); // 성공 즉시 스캔 종료
-            },
-            (errorMessage) => {
-                // 스캔 중 에러(인식 실패 등)는 로그만 남기고 무시
-                // console.log(errorMessage);
-            }
-        ).catch((err) => {
-            console.error("후면 카메라 실행 실패, 일반 모드로 재시도:", err);
-            // 후면 강제 실패 시(PC 등), 일반 모드(facingMode: "environment" without exact)로 재시도
-            html5QrCode.start(
-                { facingMode: "environment" },
-                config,
-                (decodedText) => {
-                    setSearchQuery(decodedText);
-                    filterResults(decodedText);
-                    setIsScanning(false);
-                },
-                () => { }
-            ).catch(err2 => {
-                console.error("카메라 실행 최종 실패:", err2);
-                alert("카메라를 실행할 수 없습니다. 권한을 확인해주세요.");
-                setIsScanning(false);
-            });
-        });
-
-        // 컴포넌트 언마운트 시 정리
-        return () => {
-            if (scannerRef.current) {
-                if (scannerRef.current.isScanning) {
-                    scannerRef.current.stop().catch(console.error);
-                }
-                scannerRef.current.clear();
-                scannerRef.current = null;
-            }
-        };
-    }, [isScanning, isPermissionGranted]);
 
     // 2. 컴포넌트 로드 시 최초 1회 실행
     useEffect(() => {
@@ -208,27 +167,13 @@ const SearchDetail = ({ isLoggedIn }) => {
                 <button
                     className='btn'
                     style={{ width: '100%', background: '#263238' }}
-                    onClick={() => setIsScanning(!isScanning)}
+                    onClick={startScan}
+                    disabled={isScanning}
                 >
-                    {isScanning ? '❌ 스캔 종료' : '📷 바코드 스캔하기'}
+                    {isScanning ? '📷 스캔 중...' : '📷 바코드 스캔하기'}
                 </button>
 
-                {/* isScanning이 활성화된 경우에만 카메라 화면(reader) 영역을 렌더링 */}
-                {isScanning && (
-                    <div className="scan-box">
-                        <div id="reader">
-                            {/* html5-qrcode 라이브러리가 여기에 카메라 화면을 렌더링합니다 */}
-                        </div>
-
-                        {/* 커스텀 오버레이 (가이드라인) */}
-                        <div className="scan-overlay">
-                            <div className="scan-area">
-                                {/* 레이저 라인 제거됨 */}
-                            </div>
-                            <div className="scan-guide-text">바코드를 영역에 맞춰주세요</div>
-                        </div>
-                    </div>
-                )}
+                {/* Native Scanner does not need a DOM element */}
             </div>
 
             {/* 3. 검색 결과 목록: 사용자가 검색을 실행한 경우(hasSearched)에만 표시 */}

@@ -13,7 +13,7 @@ const RegisterPage = ({ onClose, onSuccess }) => {
 
   // ✅ 카카오/구글 로그인
   const handleOAuth = (provider) => {
-    window.location.href = `http://localhost:3000/auth/${provider}`;
+    window.location.href = `http://192.168.219.74:3000/auth/${provider}`;
   };
 
   // ✅ 로컬 로그인
@@ -93,31 +93,28 @@ const RegisterPage = ({ onClose, onSuccess }) => {
         <div className="flex justify-center mb-6 border-b">
           <button
             onClick={() => setTab("login")}
-            className={`px-6 py-2 font-bold ${
-              tab === "login"
+            className={`px-6 py-2 font-bold ${tab === "login"
                 ? "text-green-600 border-b-2 border-green-600"
                 : "text-gray-400"
-            }`}
+              }`}
           >
             로그인
           </button>
           <button
             onClick={() => setTab("register")}
-            className={`px-6 py-2 font-bold ${
-              tab === "register"
+            className={`px-6 py-2 font-bold ${tab === "register"
                 ? "text-green-600 border-b-2 border-green-600"
                 : "text-gray-400"
-            }`}
+              }`}
           >
             회원가입
           </button>
           <button
             onClick={() => setTab("forgot")}
-            className={`px-6 py-2 font-bold ${
-              tab === "forgot"
+            className={`px-6 py-2 font-bold ${tab === "forgot"
                 ? "text-green-600 border-b-2 border-green-600"
                 : "text-gray-400"
-            }`}
+              }`}
           >
             비밀번호 찾기
           </button>

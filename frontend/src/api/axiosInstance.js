@@ -21,7 +21,7 @@ axiosInstance.interceptors.response.use(
       originalRequest._retry = true;
       try {
         const refreshToken = localStorage.getItem("refreshToken");
-        const res = await axios.post("http://localhost:3000/auth/refresh", {
+        const res = await axios.post("http://192.168.219.74:3000/auth/refresh", {
           token: refreshToken,
         });
         const newAccessToken = res.data.accessToken;

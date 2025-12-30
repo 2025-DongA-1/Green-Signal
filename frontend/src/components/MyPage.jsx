@@ -4,7 +4,7 @@ import axios from "axios";
 import db from './lib/db';
 import "../styles/MyPage.css";
 
-const API = "http://localhost:3000";
+const API = "http://192.168.219.74:3000";
 
 const MyPage = ({ user, onSaved }) => {
     const [nickname, setNickname] = useState(user?.nickname || "");

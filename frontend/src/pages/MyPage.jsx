@@ -14,7 +14,7 @@ const MyPage = ({ user }) => {
 
   const handleSave = async () => {
     try {
-      await axios.put(`http://localhost:3000/users/${user.id}`, formData);
+      await axios.put(`http://192.168.219.74:3000/users/${user.id}`, formData);
       alert("✅ 정보가 수정되었습니다!");
     } catch (err) {
       console.error(err);
@@ -30,10 +30,10 @@ const MyPage = ({ user }) => {
       <div className="space-y-3">
         <p>이메일: {user.email}</p>
         <label>닉네임:
-          <input name="nickname" value={formData.nickname} onChange={handleChange} className="border ml-2 px-1"/>
+          <input name="nickname" value={formData.nickname} onChange={handleChange} className="border ml-2 px-1" />
         </label>
         <label>알러지 정보:
-          <input name="allergy" value={formData.allergy} onChange={handleChange} className="border ml-2 px-1"/>
+          <input name="allergy" value={formData.allergy} onChange={handleChange} className="border ml-2 px-1" />
         </label>
         <p>유형: {user.type}</p>
         <p>역할: {user.role}</p>

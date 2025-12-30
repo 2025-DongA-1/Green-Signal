@@ -12,8 +12,8 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 const CSV_DIR = 'C:/ProgramData/MySQL/MySQL Server 8.0/Uploads';
 
 const createStatements = `
-CREATE DATABASE IF NOT EXISTS app_db CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
-USE app_db;
+CREATE DATABASE IF NOT EXISTS \`\${process.env.DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+USE \`\${process.env.DB_NAME}\`;
 
 CREATE TABLE IF NOT EXISTS users (
   user_id INT NOT NULL AUTO_INCREMENT,

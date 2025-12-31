@@ -26,17 +26,26 @@ const SearchDetail = ({ isLoggedIn }) => {
         }
 
         setIsLoading(true);
+        console.log("Searching for:", query); // DEBUG log
+
         try {
+            // 바코드는 정확히 일치하는 경우가 많으므로 LIKE 대신 = 사용 (또는 포함 검색 유지)
+            // 여기서는 바코드 스캔 시 정확한 값이 들어오므로 BAR_CD는 우선 정확 일치로 검색 시도
+            // 만약 LIKE가 필요하다면 기존 유지. 하지만 정확도를 위해 변경.
             const queryResult = await db.execute(`
                 SELECT 
-                    report_no, 
-                    product_name AS name, 
-                    capacity AS price, 
-                    imgurl1 AS img, 
-                    seller 
-                FROM products 
-                WHERE product_name LIKE ? OR report_no LIKE ?
-            `, [`%${query}%`, `%${query}%`]);
+                    p.report_no, 
+                    p.product_name AS name, 
+                    p.capacity AS price, 
+                    p.imgurl1 AS img, 
+                    p.seller 
+                FROM products p
+                LEFT JOIN product_barcodes b ON p.report_no = b.report_no
+                WHERE p.product_name LIKE ? OR p.report_no LIKE ? OR b.barcode = ?
+                GROUP BY p.report_no
+            `, [`%${query}%`, `%${query}%`, query]);
+
+            console.log("Search Results:", queryResult); // DEBUG log
 
             const mapped = queryResult.map((item, index) => ({
                 id: `${item.report_no || 'item'}-${index}`,

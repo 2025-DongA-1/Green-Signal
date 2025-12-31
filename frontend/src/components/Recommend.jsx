@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
+import API_BASE from "../config/apiBase";
 
-const API = "http://192.168.219.74:3000";
+const API = API_BASE;
 
 const Recommend = ({ isLoggedIn, userInfo }) => {
   const [items, setItems] = useState([]);

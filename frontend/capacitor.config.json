@@ -3,7 +3,7 @@
   "appName": "ProjectP2",
   "webDir": "dist",
   "server": {
-    "url": "http://192.168.219.74:5173",
+    "url": "http://localhost:3000",
     "cleartext": true
   }
 }

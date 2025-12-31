@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import './App.css'
 import { Routes, Route } from 'react-router-dom'
 import db from './components/lib/db'
+import { ensureUserRow, getUserId } from './components/lib/userUtils'
 
 import Header from './components/Header'
 import Footer from './components/Footer'
@@ -22,6 +23,14 @@ function App() {
   const [isLoggedIn, setLoggedIn] = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [userInfo, setUserInfo] = useState(null)
+
+  const syncUserInfo = async (rawUser) => {
+    if (!rawUser) return null;
+    const ensuredId = await ensureUserRow(rawUser);
+    const userId = ensuredId || getUserId(rawUser);
+    if (!userId) return rawUser;
+    return { ...rawUser, user_id: userId };
+  };
 
   // 공통: 즐겨찾기 데이터 로드 함수
   const fetchFavorites = async (userId) => {
@@ -44,26 +53,29 @@ function App() {
 
   // 컴포넌트 마운트 시 초기 로그인 상태 확인 및 Deep Link 리스너 등록
   useEffect(() => {
-    // [1] 안드로이드 Deep Link 리스너 (앱으로 복귀 시 토큰 처리)
-    import('@capacitor/app').then(({ App: CapApp }) => {
-      CapApp.addListener('appUrlOpen', (event) => {
-        // URL 파싱: projectp2://callback?token=...
-        const url = new URL(event.url);
-        const tokenFromDeepLink = url.searchParams.get("token");
+    const initAuth = async () => {
+      // [1] 안드로이드 Deep Link 리스너 (앱으로 복귀 시 토큰 처리)
+      import('@capacitor/app').then(({ App: CapApp }) => {
+        CapApp.addListener('appUrlOpen', (event) => {
+          // URL 파싱: projectp2://callback?token=...
+          const url = new URL(event.url);
+          const tokenFromDeepLink = url.searchParams.get("token");
 
-        if (tokenFromDeepLink) {
-          processToken(tokenFromDeepLink); // 토큰 처리 함수 호출
-        }
-      });
-    }).catch(err => console.log("Capacitor App plugin not found (web mode)", err));
+          if (tokenFromDeepLink) {
+            processToken(tokenFromDeepLink); // 토큰 처리 함수 호출
+          }
+        });
+      }).catch(err => console.log("Capacitor App plugin not found (web mode)", err));
 
-    // [2] 웹 URL 쿼리 파라미터 확인 (브라우저 복귀 시)
-    const params = new URLSearchParams(window.location.search);
-    const tokenFromUrl = params.get("token");
+      // [2] 웹 URL 쿼리 파라미터 확인 (브라우저 복귀 시)
+      const params = new URLSearchParams(window.location.search);
+      const tokenFromUrl = params.get("token");
 
-    if (tokenFromUrl) {
-      processToken(tokenFromUrl);
-    } else {
+      if (tokenFromUrl) {
+        await processToken(tokenFromUrl);
+        return;
+      }
+
       // 3. 기존 로컬 스토리지 로그인 확인
       const token = localStorage.getItem('token');
       const user = localStorage.getItem('user');
@@ -71,33 +83,37 @@ function App() {
       if (token && user) {
         setLoggedIn(true);
         const parsedUser = JSON.parse(user);
-        setUserInfo(parsedUser);
-        fetchFavorites(parsedUser.user_id);
+        const normalizedUser = await syncUserInfo(parsedUser);
+        setUserInfo(normalizedUser);
+        fetchFavorites(getUserId(normalizedUser));
       } else {
         setFavorites([]);
       }
-    }
+    };
+
+    initAuth();
   }, []);
 
   // 토큰 처리 및 로그인 완료 로직 분리
-  const processToken = (tokenStr) => {
+  const processToken = async (tokenStr) => {
     if (!tokenStr) return;
     localStorage.setItem("token", tokenStr);
     try {
       const payload = JSON.parse(atob(tokenStr.split('.')[1]));
-      const userData = {
+      const rawUser = {
         user_id: payload.id || payload.user_id,
         email: payload.email,
         role: payload.role,
         provider: payload.provider,
         nickname: payload.nickname || (payload.email ? payload.email.split('@')[0] : 'User')
       };
+      const userData = await syncUserInfo(rawUser);
       localStorage.setItem("user", JSON.stringify(userData));
 
       setLoggedIn(true);
       setUserInfo(userData);
       setShowLoginModal(false);
-      fetchFavorites(userData.user_id);
+      fetchFavorites(getUserId(userData));
 
       // URL 정리
       if (window.history.replaceState) {
@@ -110,7 +126,8 @@ function App() {
 
   // [기능: 즐겨찾기 추가/삭제]
   const toggleFavorite = async (product) => {
-    if (!isLoggedIn || !userInfo || !userInfo.user_id) {
+    const userId = getUserId(userInfo);
+    if (!isLoggedIn || !userInfo || !userId) {
       alert('로그인 정보가 없습니다. 로그인 후 다시 시도해주세요.');
       setShowLoginModal(true);
       return;
@@ -130,7 +147,7 @@ function App() {
     try {
       if (isExist) {
         // [삭제 로직]
-        await db.execute('DELETE FROM favorites WHERE report_no = ? AND user_id = ?', [reportNo, userInfo.user_id]);
+        await db.execute('DELETE FROM favorites WHERE report_no = ? AND user_id = ?', [reportNo, userId]);
         setFavorites(prev => prev.filter(item => (item.report_no || item.prdlstReportNo) !== reportNo));
       } else {
         // [추가 로직]
@@ -142,14 +159,14 @@ function App() {
         await db.execute(
           'INSERT INTO favorites (user_id, report_no, created_at) VALUES (?, ?, ?)',
           [
-            userInfo.user_id,
+            userId,
             reportNo,
             new Date().toISOString().slice(0, 19).replace('T', ' ')
           ]
         );
 
         const newItem = {
-          user_id: userInfo.user_id,
+          user_id: userId,
           report_no: reportNo,
           product_name: product.product_name || product.product_name_snapshot || product.prdlstNm,
           manufacturer: product.manufacturer || product.manufacture,
@@ -174,12 +191,13 @@ function App() {
     alert('로그아웃 되었습니다.');
   };
 
-  const handleLoginSuccess = (user) => {
+  const handleLoginSuccess = async (user) => {
+    const normalizedUser = await syncUserInfo(user);
     setLoggedIn(true);
-    setUserInfo(user);
+    setUserInfo(normalizedUser);
     setShowLoginModal(false);
-    fetchFavorites(user.user_id);
-    alert(`로그인 성공! 환영합니다, ${user.nickname || "회원"}님.`);
+    fetchFavorites(getUserId(normalizedUser));
+    alert(`로그인 성공! 환영합니다, ${normalizedUser.nickname || "회원"}님.`);
   };
 
   return (
@@ -210,8 +228,9 @@ function App() {
             <MyPage
               user={userInfo}
               onSaved={(updatedUser) => {
-                setUserInfo(updatedUser);
-                localStorage.setItem('user', JSON.stringify(updatedUser));
+                const nextUser = { ...userInfo, ...updatedUser };
+                setUserInfo(nextUser);
+                localStorage.setItem('user', JSON.stringify(nextUser));
               }}
             />
           } />

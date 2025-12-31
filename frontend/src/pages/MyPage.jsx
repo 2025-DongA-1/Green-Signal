@@ -1,6 +1,7 @@
 // src/pages/MyPage.jsx
 import React, { useState } from "react";
 import axios from "axios";
+import API_BASE from "../config/apiBase";
 
 const MyPage = ({ user }) => {
   const [formData, setFormData] = useState({
@@ -14,7 +15,7 @@ const MyPage = ({ user }) => {
 
   const handleSave = async () => {
     try {
-      await axios.put(`http://192.168.219.74:3000/users/${user.id}`, formData);
+      await axios.put(`${API_BASE}/users/${user.id}`, formData);
       alert("✅ 정보가 수정되었습니다!");
     } catch (err) {
       console.error(err);

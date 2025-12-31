@@ -1,8 +1,9 @@
 // src/pages/FindAccountPage.jsx
 import React, { useState } from "react";
+import API_BASE from "../config/apiBase";
 
 export default function FindAccountPage() {
-  const API = import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_URI || "http://192.168.219.74:3000";
+  const API = API_BASE;
   const [email, setEmail] = useState("");
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);

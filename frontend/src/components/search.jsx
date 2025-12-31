@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import db from './lib/db'
 import '../styles/dar.css'
+import API_BASE from "../config/apiBase";
 
 const Search = ({ isLoggedIn, userInfo }) => {
     // 1. 상태 및 훅 초기화
@@ -17,7 +18,7 @@ const Search = ({ isLoggedIn, userInfo }) => {
                 // [변경] 백엔드 API를 호출하여 랜덤+필터링된 추천 목록을 가져옵니다.
                 // 로그인 시 userInfo.user_id를 보내면 알러지 유발 제품이 자동 제외됩니다.
                 const userIdParam = (userInfo && userInfo.user_id) ? userInfo.user_id : 'null';
-                const res = await fetch(`http://192.168.219.74:3000/api/recommend?userId=${userIdParam}&limit=10`);
+                const res = await fetch(`${API_BASE}/api/recommend?userId=${userIdParam}&limit=10`);
                 const data = await res.json();
 
                 // API 데이터를 UI 포맷에 맞게 변환

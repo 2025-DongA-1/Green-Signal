@@ -2,13 +2,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import db from './lib/db';
+import { ensureUserRow, getUserId } from './lib/userUtils';
 import '../styles/dar.css';
 import "../styles/ProductDetailMain.css";
-
-const API_BASE =
-    import.meta.env.VITE_API_BASE ||
-    import.meta.env.VITE_API_URI ||
-    "http://192.168.219.74:3000";
+import API_BASE from "../config/apiBase";
 
 const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
     // 1. 상태 및 라우팅 관련 정의
@@ -18,6 +15,7 @@ const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
     const [isLoading, setIsLoading] = useState(true);
     const navigate = useNavigate();
     const location = useLocation();
+    const userId = getUserId(userInfo);
 
     // URL 쿼리 파라미터 파싱
     const queryParams = new URLSearchParams(location.search);
@@ -40,10 +38,9 @@ const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
     useEffect(() => {
         let isMounted = true;
         const fetchProduct = async () => {
-            setProduct(null); // 이전 데이터 초기화
+            setProduct(null);
             setIsLoading(true);
             try {
-                // ... (상품 조회 쿼리)
                 const query = `
                     SELECT p.*, b.barcode 
                     FROM products p
@@ -56,24 +53,21 @@ const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
 
                 if (found && isMounted) {
                     setProduct(found);
-                    console.log('✅ 상품 정보 로드 성공:', found.product_name);
 
-                    // [추가] 안전성(알러지/지병) 검사 실행
-                    if (userInfo && userInfo.user_id) {
-                        fetch(`${API_BASE}/api/product/check-safety?reportNo=${found.report_no}&userId=${userInfo.user_id}`)
+                    if (userId) {
+                        await ensureUserRow(userInfo);
+                        fetch(`${API_BASE}/api/product/check-safety?reportNo=${found.report_no}&userId=${userId}`)
                             .then(res => res.json())
                             .then(data => setWarnings(data.warnings || []))
-                            .catch(e => console.error("Warning fetch error:", e));
+                            .catch(e => console.error('Warning fetch error:', e));
                     }
 
-                    // 엄격한 중복 체크
                     if (recordedRef.current === found.report_no) return;
                     recordedRef.current = found.report_no;
 
-                    // 스캔 이력 기록
-                    if (userInfo && userInfo.user_id) {
+                    if (userId) {
                         const historyValues = [
-                            userInfo.user_id,
+                            userId,
                             (found.barcode || '').trim(),
                             found.report_no,
                             found.product_name,
@@ -81,26 +75,25 @@ const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
                             new Date().toISOString().slice(0, 19).replace('T', ' ')
                         ];
 
-                        await db.execute('DELETE FROM scan_history WHERE report_no = ? AND user_id = ?', [found.report_no, userInfo.user_id]);
+                        await db.execute('DELETE FROM scan_history WHERE report_no = ? AND user_id = ?', [found.report_no, userId]);
                         await db.execute(
                             'INSERT INTO scan_history (user_id, barcode, report_no, product_name_snapshot, warning_level_snapshot, scanned_at) VALUES (?, ?, ?, ?, ?, ?)',
                             historyValues
                         );
 
-                        // 히스토리 개수 제한
-                        const currentHistory = await db.execute('SELECT scanned_at FROM scan_history WHERE user_id = ? ORDER BY scanned_at DESC', [userInfo.user_id]);
+                        const currentHistory = await db.execute('SELECT scanned_at FROM scan_history WHERE user_id = ? ORDER BY scanned_at DESC', [userId]);
                         if (currentHistory.length > 20) {
                             const thresholdTimestamp = currentHistory[19].scanned_at;
-                            await db.execute('DELETE FROM scan_history WHERE user_id = ? AND scanned_at < ?', [userInfo.user_id, thresholdTimestamp]);
+                            await db.execute('DELETE FROM scan_history WHERE user_id = ? AND scanned_at < ?', [userId, thresholdTimestamp]);
                         }
                     } else {
-                        console.log('로그인하지 않아 히스토리를 저장하지 않습니다.');
+                        console.log('로그인하지 않아 히스토리를 갱신하지 않습니다.');
                     }
                 } else if (isMounted) {
-                    console.warn('❌ 상품을 찾을 수 없습니다. (ID:', productId, ')');
+                    console.warn('해당 제품을 찾을 수 없습니다. (ID:', productId, ')');
                 }
             } catch (error) {
-                if (isMounted) console.error('데이터베이스 조회 중 오류 발생:', error);
+                if (isMounted) console.error('데이터베이스 조회 오류 발생:', error);
             } finally {
                 if (isMounted) setIsLoading(false);
             }
@@ -113,7 +106,7 @@ const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
         return () => {
             isMounted = false;
         };
-    }, [productId, userInfo]); // userInfo added for dependency
+    }, [productId, userId, userInfo]); // userInfo added for dependency
 
     // 2. 상단 탭 구성 설정
     const tabs = ['summary', 'ingredient', 'nutrition'];
@@ -357,7 +350,7 @@ const RecommendationList = ({ userInfo, navigate }) => {
         const fetchRecommendations = async () => {
             try {
                 // 사용자 ID를 쿼리로 보내 안전한 맞춤 추천 요청
-                const userIdParam = (userInfo && userInfo.user_id) ? userInfo.user_id : 'null';
+                const userIdParam = getUserId(userInfo) || 'null';
                 const res = await fetch(`${API_BASE}/api/recommend?userId=${userIdParam}&limit=4`);
                 const data = await res.json();
 

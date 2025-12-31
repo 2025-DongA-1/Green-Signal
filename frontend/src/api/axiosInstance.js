@@ -1,9 +1,5 @@
 import axios from "axios";
-
-const API_BASE =
-  import.meta.env.VITE_API_BASE ||
-  import.meta.env.VITE_API_URI ||
-  "http://192.168.219.74:3000";
+import API_BASE from "../config/apiBase";
 
 // 기본 Axios 인스턴스 생성
 const axiosInstance = axios.create({

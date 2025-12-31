@@ -109,6 +109,8 @@
 
 .container {
   padding: 0 14px;
+  /* 하단 탭바가 가리지 않도록 추가 여백 */
+  padding-bottom: calc(var(--nav-h) + 24px);
 }
 
 /* 검색 박스 컨테이너: 내부 요소들을 중앙 정렬 */

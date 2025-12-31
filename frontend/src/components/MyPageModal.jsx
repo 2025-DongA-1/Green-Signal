@@ -3,8 +3,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import db from './lib/db';
 import "../styles/MyPageModal.css";
+import API_BASE from "../config/apiBase";
 
-const API = "http://192.168.219.74:3000";
+const API = API_BASE;
 
 const MyPageModal = ({ user, onClose, onSaved }) => {
   const [nickname, setNickname] = useState(user?.nickname || "");

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import db from './lib/db';
+import { getUserId } from './lib/userUtils';
 import '../styles/History.css';
 
 const History = ({ isLoggedIn, userInfo }) => {
@@ -14,12 +15,13 @@ const History = ({ isLoggedIn, userInfo }) => {
     const [historyList, setHistoryList] = useState([]);
     const [filter, setFilter] = useState('전체');
     const navigate = useNavigate();
+    const userId = getUserId(userInfo);
 
     // [기능: 초기 데이터 로드]
     // 컴포넌트가 처음 화면에 나타날 때 실행됩니다.
     // DB의 'scan_history' 테이블에서 데이터를 가져와 가공하여 상태에 저장합니다.
     useEffect(() => {
-        if (!isLoggedIn || !userInfo) {
+        if (!isLoggedIn || !userId) {
             setHistoryList([]);
             return;
         }
@@ -35,7 +37,7 @@ const History = ({ isLoggedIn, userInfo }) => {
                     WHERE h.user_id = ?
                     ORDER BY h.scanned_at DESC
                 `;
-                const data = await db.execute(query, [userInfo.user_id]);
+                const data = await db.execute(query, [userId]);
 
                 // 2. 데이터 가공 (UI에 맞게 필드명 변경 및 포맷팅)
                 const mapped = (data || []).map(item => ({
@@ -58,7 +60,7 @@ const History = ({ isLoggedIn, userInfo }) => {
             }
         };
         fetchHistory();
-    }, [isLoggedIn, userInfo]);
+    }, [isLoggedIn, userId]);
 
     // [기능: 상품 클릭 핸들러]
     // 리스트에서 특정 상품을 클릭하면 해당 상품의 상세 페이지로 이동합니다.

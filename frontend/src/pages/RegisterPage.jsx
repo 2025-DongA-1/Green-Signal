@@ -1,11 +1,7 @@
 // src/pages/RegisterPage.jsx
 import React, { useState } from "react";
 import API from "../utils/axiosInstance";
-
-const API_BASE =
-  import.meta.env.VITE_API_BASE ||
-  import.meta.env.VITE_API_URI ||
-  "http://192.168.219.74:3000";
+import API_BASE from "../config/apiBase";
 
 const RegisterPage = ({ onClose, onSuccess }) => {
   const [tab, setTab] = useState("login");

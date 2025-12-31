@@ -2,9 +2,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import db from "./lib/db";
+import { ensureUserRow, getUserId } from "./lib/userUtils";
 import "../styles/MyPage.css";
+import API_BASE from "../config/apiBase";
 
-const API = "http://192.168.219.74:3000";
+const API = API_BASE;
 
 const MyPage = ({ user, onSaved }) => {
   const [nickname, setNickname] = useState(user?.nickname || "");
@@ -20,13 +22,18 @@ const MyPage = ({ user, onSaved }) => {
   const [joinDate, setJoinDate] = useState(user?.created_at || null);
 
   const [saving, setSaving] = useState(false);
+  const userId = getUserId(user);
   const token = useMemo(() => localStorage.getItem("token"), []);
 
   // 초기 데이터 로드
   useEffect(() => {
+    if (userId) {
+      ensureUserRow(user).catch((e) => console.error("사용자 동기화 실패:", e));
+    }
+
     // 가입일 조회
-    if (user?.user_id) {
-      db.execute("SELECT created_at FROM users WHERE user_id = ?", [user.user_id])
+    if (userId) {
+      db.execute("SELECT created_at FROM users WHERE user_id = ?", [userId])
         .then((rows) => {
           if (rows.length > 0) setJoinDate(rows[0].created_at);
         })
@@ -43,7 +50,7 @@ const MyPage = ({ user, onSaved }) => {
       .catch((err) => console.error("질병 목록 로드 실패:", err));
 
     // 내 알러지/질병
-    if (user?.user_id) {
+    if (userId) {
       db.execute(
         `
         SELECT a.allergen_name, a.allergen_id 
@@ -51,7 +58,7 @@ const MyPage = ({ user, onSaved }) => {
         JOIN allergens a ON ua.allergen_id = a.allergen_id 
         WHERE ua.user_id = ?
       `,
-        [user.user_id]
+        [userId]
       )
         .then((rows) => setMyAllergens(rows || []))
         .catch((err) => console.error("내 알러지 로드 실패:", err));
@@ -63,19 +70,19 @@ const MyPage = ({ user, onSaved }) => {
         JOIN diseases d ON ud.disease_id = d.disease_id 
         WHERE ud.user_id = ?
       `,
-        [user.user_id]
+        [userId]
       )
         .then((rows) => setMyDiseases(rows || []))
         .catch((err) => console.error("내 질병 로드 실패:", err));
     }
-  }, [user]);
+  }, [user, userId]);
 
   // 알러지 추가
   const handleAddAllergen = async () => {
-    if (!selectedAllergen || !user?.user_id) return;
+    if (!selectedAllergen || !userId) return;
     try {
       await db.execute("INSERT INTO user_allergens (user_id, allergen_id) VALUES (?, ?)", [
-        user.user_id,
+        userId,
         selectedAllergen,
       ]);
       const rows = await db.execute(
@@ -85,7 +92,7 @@ const MyPage = ({ user, onSaved }) => {
         JOIN allergens a ON ua.allergen_id = a.allergen_id 
         WHERE ua.user_id = ?
       `,
-        [user.user_id]
+        [userId]
       );
       setMyAllergens(rows || []);
       setSelectedAllergen("");
@@ -96,10 +103,10 @@ const MyPage = ({ user, onSaved }) => {
 
   // 질병 추가
   const handleAddDisease = async () => {
-    if (!selectedDisease || !user?.user_id) return;
+    if (!selectedDisease || !userId) return;
     try {
       await db.execute("INSERT INTO user_diseases (user_id, disease_id) VALUES (?, ?)", [
-        user.user_id,
+        userId,
         selectedDisease,
       ]);
       const rows = await db.execute(
@@ -109,7 +116,7 @@ const MyPage = ({ user, onSaved }) => {
         JOIN diseases d ON ud.disease_id = d.disease_id 
         WHERE ud.user_id = ?
       `,
-        [user.user_id]
+        [userId]
       );
       setMyDiseases(rows || []);
       setSelectedDisease("");
@@ -123,7 +130,7 @@ const MyPage = ({ user, onSaved }) => {
     if (!confirm(`${name}을(를) 삭제하시겠습니까?`)) return;
     try {
       await db.execute("DELETE FROM user_allergens WHERE user_id = ? AND allergen_id = ?", [
-        user.user_id,
+        userId,
         id,
       ]);
       setMyAllergens((prev) => prev.filter((item) => item.allergen_id !== id));
@@ -137,7 +144,7 @@ const MyPage = ({ user, onSaved }) => {
     if (!confirm(`${name}을(를) 삭제하시겠습니까?`)) return;
     try {
       await db.execute("DELETE FROM user_diseases WHERE user_id = ? AND disease_id = ?", [
-        user.user_id,
+        userId,
         id,
       ]);
       setMyDiseases((prev) => prev.filter((item) => item.disease_id !== id));
@@ -160,7 +167,7 @@ const MyPage = ({ user, onSaved }) => {
 
       try {
         await axios.put(
-          `${API}/users/${user.user_id || user.id}`,
+          `${API}/users/${userId || user.id}`,
           payload,
           token ? { headers: { Authorization: `Bearer ${token}` } } : undefined
         );

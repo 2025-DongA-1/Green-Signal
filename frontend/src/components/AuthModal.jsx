@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import "../styles/AuthModal.css";
+import API_BASE from "../config/apiBase";
 
 /**
  * [통합 인증 모달]
@@ -13,7 +14,7 @@ import "../styles/AuthModal.css";
  */
 export default function AuthModal({ open, onClose, onLoginSuccess }) {
     // API 주소 설정 (환경 변수 또는 기본값 3000번 포트 사용)
-    const API = import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_URI || "http://192.168.219.74:3000";
+    const API = API_BASE;
 
     // 모달 내부 상태 관리
     const [mode, setMode] = useState("login"); // 현재 화면 모드 (login | register | find)

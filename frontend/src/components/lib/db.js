@@ -1,3 +1,5 @@
+import API_BASE from "../../config/apiBase";
+
 /**
  * [가상 데이터베이스 서비스 -> MySQL API 연동 버전]
  * 이제 로컬 브라우저의 가상 DB가 아닌, 
@@ -5,7 +7,7 @@
  */
 class RemoteDatabase {
     constructor() {
-        this.apiUrl = 'http://192.168.219.74:3000/api/execute';
+        this.apiUrl = `${API_BASE}/api/execute`;
     }
 
     /**

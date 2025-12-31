@@ -1,0 +1,120 @@
+// src/components/ProductDetailMain.jsx
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import db from './lib/db';
+import { ensureUserRow, getUserId } from './lib/userUtils';
+import '../styles/dar.css';
+import "../styles/ProductDetailMain.css";
+
+const API_BASE =
+    import.meta.env.VITE_API_BASE ||
+    import.meta.env.VITE_API_URI ||
+    "http://192.168.219.74:3000";
+
+const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
+    // 1. ?ÅÌÉú Î∞??ºÏö∞??Í¥Ä???ïÏùò
+    const [activeTab, setActiveTab] = useState('summary');
+    const [product, setProduct] = useState(null);
+    const [warnings, setWarnings] = useState([]); // ??Í≤ΩÍ≥† ?ÅÌÉú Ï∂îÍ?
+    const [isLoading, setIsLoading] = useState(true);
+    const navigate = useNavigate();
+    const location = useLocation();
+    const userId = getUserId(userInfo);
+
+    // URL ÏøºÎ¶¨ ?åÎùºÎØ∏ÌÑ∞ ?åÏã±
+    const queryParams = new URLSearchParams(location.search);
+    const reportNoFromQuery = queryParams.get('reportNo');
+
+    // ?¥Ï†Ñ ?òÏù¥ÏßÄ(Î™©Î°ù ???êÏÑú ?òÍ≤®Ï§Ä ?ÅÌíà ?ùÎ≥Ñ???òÏã† (state ?∞ÏÑ† -> ÏøºÎ¶¨ ?åÎùºÎØ∏ÌÑ∞ Î∞±ÏóÖ)
+    const productId = location.state?.productId || reportNoFromQuery;
+    // Ï∂îÏ≤ú Î™©Î°ù???µÌï¥ ?§Ïñ¥?îÎäîÏßÄ ?¨Î? (?îÎ©¥ UI Ï°∞Ï†à??
+    const isFromRecommendation = location.state?.fromRecommendation;
+
+    // Ï§ëÎ≥µ Í∏∞Î°ù Î∞©Ï?Î•??ÑÌïú Ref
+    const recordedRef = useRef(null);
+
+    // ?ÑÏû¨ ?ÅÌíà??Ï¶êÍ≤®Ï∞æÍ∏∞???àÎäîÏßÄ ?ïÏù∏
+    const isFavorite = product && favorites.some(fav =>
+        String(fav.report_no || fav.prdlstReportNo) === String(product.report_no || product.prdlstReportNo)
+    );
+
+    // [?ÅÌíà ?ïÎ≥¥ Ï°∞Ìöå Í∏∞Îä•]
+    useEffect(() => {
+        let isMounted = true;
+        const fetchProduct = async () => {
+            setProduct(null); // ?¥Ï†Ñ ?∞Ïù¥??Ï¥àÍ∏∞??
+            setIsLoading(true);
+            try {
+                // ... (?ÅÌíà Ï°∞Ìöå ÏøºÎ¶¨)
+                const query = `
+                    SELECT p.*, b.barcode 
+                    FROM products p
+                    LEFT JOIN product_barcodes b ON p.report_no = b.report_no
+                    WHERE p.report_no = ? OR b.barcode = ?
+                    LIMIT 1
+                `;
+                const results = await db.execute(query, [productId, productId]);
+                const found = results[0];
+
+                if (found && isMounted) {
+                    setProduct(found);
+                    console.log('???ÅÌíà ?ïÎ≥¥ Î°úÎìú ?±Í≥µ:', found.product_name);
+
+                    // [Ï∂îÍ?] ?àÏ†Ñ???åÎü¨ÏßÄ/ÏßÄÎ≥? Í≤Ä???§Ìñâ
+                    if (userId) {
+                        fetch(`${API_BASE}/api/product/check-safety?reportNo=${found.report_no}&userId=${userId}`)
+                            .then(res => res.json())
+                            .then(data => setWarnings(data.warnings || []))
+                            .catch(e => console.error("Warning fetch error:", e));
+                    }
+
+                    // ?ÑÍ≤©??Ï§ëÎ≥µ Ï≤¥ÌÅ¨
+                    if (recordedRef.current === found.report_no) return;
+                    recordedRef.current = found.report_no;
+
+                    // ?§Ï∫î ?¥Î†• Í∏∞Î°ù
+                    if (userInfo && userInfo.user_id) {
+                        const historyValues = [
+                            userInfo.user_id,
+                            (found.barcode || '').trim(),
+                            found.report_no,
+                            found.product_name,
+                            'OK',
+                            new Date().toISOString().slice(0, 19).replace('T', ' ')
+                        ];
+
+                        await db.execute('DELETE FROM scan_history WHERE report_no = ? AND user_id = ?', [found.report_no, userInfo.user_id]);
+                        await db.execute(
+                            'INSERT INTO scan_history (user_id, barcode, report_no, product_name_snapshot, warning_level_snapshot, scanned_at) VALUES (?, ?, ?, ?, ?, ?)',
+                            historyValues
+                        );
+
+                        // ?àÏä§?†Î¶¨ Í∞úÏàò ?úÌïú
+                        const currentHistory = await db.execute('SELECT scanned_at FROM scan_history WHERE user_id = ? ORDER BY scanned_at DESC', [userInfo.user_id]);
+                        if (currentHistory.length > 20) {
+                            const thresholdTimestamp = currentHistory[19].scanned_at;
+                            await db.execute('DELETE FROM scan_history WHERE user_id = ? AND scanned_at < ?', [userInfo.user_id, thresholdTimestamp]);
+                        }
+                    } else {
+                        console.log('Î°úÍ∑∏?∏ÌïòÏßÄ ?äÏïÑ ?àÏä§?†Î¶¨Î•??Ä?•ÌïòÏßÄ ?äÏäµ?àÎã§.');
+                    }
+                } else if (isMounted) {
+                    console.warn('???ÅÌíà??Ï∞æÏùÑ ???ÜÏäµ?àÎã§. (ID:', productId, ')');
+                }
+            } catch (error) {
+                if (isMounted) console.error('?∞Ïù¥?∞Î≤†?¥Ïä§ Ï°∞Ìöå Ï§??§Î•ò Î∞úÏÉù:', error);
+            } finally {
+                if (isMounted) setIsLoading(false);
+            }
+        };
+
+        if (productId) {
+            fetchProduct();
+        }
+
+        return () => {
+            isMounted = false;
+        };
+    }, [productId, userInfo]); // userInfo added for dependency
+
+    // 2. ?ÅÎã® ??Íµ¨ÏÑ± ?§Ï†ï

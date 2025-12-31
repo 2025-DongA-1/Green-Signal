@@ -67,17 +67,7 @@ const Search = ({ isLoggedIn, userInfo }) => {
                 <button className='btn' style={{ pointerEvents: 'none' }}>검색</button>
             </div>
 
-            {/* 2. 바코드 스캔 버튼: 카메라를 이용해 바코드를 직접 스캔하는 기능으로 연결 */}
-            <div style={{ marginTop: '12px' }}>
-                {/* 버튼 클릭 시 하단의 카메라 스캔 영역이 나타나거나 사라집니다. */}
-                <button
-                    className='btn'
-                    style={{ width: '100%', background: '#263238' }}
-                    onClick={() => handleNavigate('/search', { autoScan: true })}
-                >
-                    📷 바코드 스캔하기
-                </button>
-            </div>
+
 
             {/* 3. 추천 목록 영역: CSV 데이터에서 가져온 인기/추천 상품을 그리드 형태로 표시 */}
             <div className="recommend-section">

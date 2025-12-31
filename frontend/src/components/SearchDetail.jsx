@@ -1,28 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { BarcodeScanner } from '@capacitor-mlkit/barcode-scanning';
-import { Camera } from '@capacitor/camera';
+import { BarcodeScanner, BarcodeFormat, LensFacing } from '@capacitor-mlkit/barcode-scanning';
+import { Capacitor } from '@capacitor/core';
+import { Html5Qrcode } from "html5-qrcode";
 
 import db from './lib/db.js'
 import '../styles/dar.css'
 
 const SearchDetail = ({ isLoggedIn }) => {
-    // 1. 필요한 훅 및 상태 정의
-    const location = useLocation(); // 이전 페이지에서 넘겨준 데이터(검색어 등) 수신
+    const location = useLocation();
     const navigate = useNavigate();
-    const [isScanning, setIsScanning] = useState(location.state?.autoScan || false); // 카메라 스캔 모드 여부
-    const [searchQuery, setSearchQuery] = useState(location.state?.query || ''); // 검색창 입력값
-    const [results, setResults] = useState([]); // 검색 결과 리스트
-    const [isLoading, setIsLoading] = useState(false); // 로딩 상태 제어
-    const [hasSearched, setHasSearched] = useState(!!location.state?.query); // 검색 실행 여부 (결과 섹션 표시용)
-    const [isPermissionGranted, setIsPermissionGranted] = useState(false);
-    const scannerRef = useRef(null);
+    const [isScanning, setIsScanning] = useState(location.state?.autoScan || false);
+    const [searchQuery, setSearchQuery] = useState(location.state?.query || '');
+    const [results, setResults] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [hasSearched, setHasSearched] = useState(!!location.state?.query);
+    const html5QrCodeRef = useRef(null);
 
-    /**
-     * [검색 실행 함수]
-     * SQL의 LIKE 문법을 사용하여 상품 데이터베이스에서 검색어와 일치하는 상품을 찾습니다.
-     * @param {string} query 검색할 상품명
-     */
+    // 검색 실행
     const filterResults = async (query) => {
         if (!query.trim()) {
             setResults([]);
@@ -32,7 +27,6 @@ const SearchDetail = ({ isLoggedIn }) => {
 
         setIsLoading(true);
         try {
-            // SQL 쿼리 실행: 상품명(product_name)에 검색어가 포함된 데이터를 모두 조회합니다.
             const queryResult = await db.execute(`
                 SELECT 
                     report_no, 
@@ -44,7 +38,6 @@ const SearchDetail = ({ isLoggedIn }) => {
                 WHERE product_name LIKE ? OR report_no LIKE ?
             `, [`%${query}%`, `%${query}%`]);
 
-            // 조회된 원본 데이터를 UI 표시용 객체 구조로 변환
             const mapped = queryResult.map((item, index) => ({
                 id: `${item.report_no || 'item'}-${index}`,
                 productId: item.report_no,
@@ -54,7 +47,7 @@ const SearchDetail = ({ isLoggedIn }) => {
                 seller: item.seller
             }));
             setResults(mapped);
-            setHasSearched(true); // 검색 결과가 있을 때만 목록 영역을 보여주기 위해 true로 설정
+            setHasSearched(true);
         } catch (error) {
             console.error('검색 쿼리 실행 중 오류 발생:', error);
         } finally {
@@ -62,27 +55,83 @@ const SearchDetail = ({ isLoggedIn }) => {
         }
     }
 
-    // [바코드 스캔: Native MLKit 사용]
-    useEffect(() => {
-        const initScanner = async () => {
-            // MLKit은 별도 초기화 불필요, 하지만 리스너 등 설정 가능
-        };
-        initScanner();
-    }, []);
+    // [웹] 스캔 중단
+    const stopWebScan = async () => {
+        if (html5QrCodeRef.current) {
+            try {
+                await html5QrCodeRef.current.stop();
+                html5QrCodeRef.current.clear();
+                html5QrCodeRef.current = null;
+            } catch (err) {
+                console.error("Failed to stop html5-qrcode", err);
+            }
+        }
+        setIsScanning(false);
+    };
 
+    // 스캔 시작 핸들러
     const startScan = async () => {
+        // [Web 환경]
+        if (Capacitor.getPlatform() === 'web') {
+            if (isScanning) {
+                await stopWebScan();
+                return;
+            }
+
+            setIsScanning(true);
+            try {
+                const devices = await Html5Qrcode.getCameras();
+                if (devices && devices.length) {
+                    const html5QrCode = new Html5Qrcode("reader");
+                    html5QrCodeRef.current = html5QrCode;
+
+                    // 카메라 ID 사용 (첫 번째 카메라)
+                    const cameraId = devices[0].id;
+
+                    await html5QrCode.start(
+                        cameraId,
+                        { fps: 10, qrbox: { width: 250, height: 250 } },
+                        (decodedText) => {
+                            setSearchQuery(decodedText);
+                            filterResults(decodedText);
+                            stopWebScan();
+                        },
+                        (errorMessage) => {
+                            // 스캔 중 에러 (무시)
+                        }
+                    );
+                } else {
+                    alert("사용 가능한 카메라가 없습니다.");
+                    setIsScanning(false);
+                }
+            } catch (err) {
+                console.error("Web Scan Error:", err);
+                setIsScanning(false);
+                alert("웹 카메라 권한을 확인해주세요.");
+            }
+            return;
+        }
+
+        // [Android/Native 환경]
         try {
-            // 1. 권한 확인 및 요청
             const { camera } = await BarcodeScanner.requestPermissions();
             if (camera !== 'granted' && camera !== 'limited') {
-                alert('카메라 권한이 거부되었습니다. 설정에서 권한을 허용해주세요.');
+                alert('카메라 권한이 거부되었습니다.');
                 return;
             }
 
             setIsScanning(true);
 
-            // 2. 스캔 시작 (Native UI 오버레이 또는 풀스크린)
-            const { barcodes } = await BarcodeScanner.scan();
+            const { available } = await BarcodeScanner.isGoogleBarcodeScannerModuleAvailable();
+            if (!available) {
+                alert('바코드 모듈 다운로드 중...');
+                await BarcodeScanner.installGoogleBarcodeScannerModule();
+            }
+
+            const { barcodes } = await BarcodeScanner.scan({
+                formats: [BarcodeFormat.QrCode, BarcodeFormat.Ean13, BarcodeFormat.Ean8, BarcodeFormat.UpcA],
+                lensFacing: LensFacing.Back
+            });
 
             if (barcodes.length > 0) {
                 const scannedValue = barcodes[0].rawValue;
@@ -90,49 +139,39 @@ const SearchDetail = ({ isLoggedIn }) => {
                 filterResults(scannedValue);
             }
         } catch (error) {
-            console.error('Barcode Scan Error:', error);
-            if (error.message.includes('canceled')) {
-                // 사용자가 취소한 경우 무시
-            } else {
-                alert('바코드 스캔 중 오류가 발생했습니다: ' + error.message);
+            console.error('Mobile Scan Error:', error);
+            if (!error.message.includes('canceled')) {
+                alert('스캔 오류: ' + error.message);
             }
         } finally {
             setIsScanning(false);
         }
     };
 
-    // 기존 html5-qrcode 관련 useEffect는 제거됨
-    // 스캔 버튼 클릭 시 setIsScanning(!isScanning) 대신 startScan() 호출하도록 변경 필요하므로
-    // 아래에서 버튼 핸들러를 수정해야 함.
-    // 하지만 여기서는 useEffect 내의 로직만 교체하고 있음.
-    // 버튼 onClick 핸들러도 수정해야 하므로 이 tool call 하나로는 부족할 수 있음.
-    // 우선 useEffect 부분과 권한 로직을 정리.
-
-
-    // 2. 컴포넌트 로드 시 최초 1회 실행
+    // 컴포넌트 언마운트 시 웹 스캐너 정리
     useEffect(() => {
-        // 메인 페이지에서 검색어를 넘겨받아 진입한 경우 바로 검색 수행
-        if (searchQuery) {
-            filterResults(searchQuery);
-        }
+        return () => {
+            if (html5QrCodeRef.current) {
+                html5QrCodeRef.current.stop().catch(console.error);
+                html5QrCodeRef.current.clear();
+            }
+        };
+    }, []);
+
+    // 초기 검색어 처리
+    useEffect(() => {
+        if (searchQuery) filterResults(searchQuery);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // 3. 검색 버튼 클릭 핸들러
     const handleSearch = () => {
-        if (searchQuery.trim()) {
-            filterResults(searchQuery);
-        }
+        if (searchQuery.trim()) filterResults(searchQuery);
     }
 
-    // 4. 입력창 엔터 키 대응
     const handleKeyDown = (e) => {
-        if (e.key === 'Enter') {
-            handleSearch();
-        }
+        if (e.key === 'Enter') handleSearch();
     }
 
-    // 5. 상품 카드 클릭 시 상세 페이지로 이동
     const handleProductClick = (id) => {
         navigate('/product', { state: { productId: id } });
     }
@@ -170,10 +209,11 @@ const SearchDetail = ({ isLoggedIn }) => {
                     onClick={startScan}
                     disabled={isScanning}
                 >
-                    {isScanning ? '📷 스캔 중...' : '📷 바코드 스캔하기'}
+                    {isScanning ? ' 스캔 중단' : '📷 바코드 스캔하기'}
                 </button>
 
-                {/* Native Scanner does not need a DOM element */}
+                {/* Web Scanner Element */}
+                <div id="reader" style={{ width: '100%', marginTop: '10px' }}></div>
             </div>
 
             {/* 3. 검색 결과 목록: 사용자가 검색을 실행한 경우(hasSearched)에만 표시 */}

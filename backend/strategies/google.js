@@ -17,7 +17,10 @@ passport.use(
         const providerId = profile.id;
         const nickname = profile.displayName || "GoogleUser";
 
-        const [user] = await db.query("SELECT * FROM users WHERE email = ?", [email]);
+        const [user] = await db.query(
+          "SELECT * FROM users WHERE (provider = ? AND social_id = ?) OR email = ?",
+          ["google", providerId, email]
+        );
 
         if (user.length > 0) {
           // 기존 유저: 리프레시 토큰 갱신

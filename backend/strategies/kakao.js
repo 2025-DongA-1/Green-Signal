@@ -18,7 +18,10 @@ passport.use(
         const nickname =
           profile._json?.properties?.nickname || "KakaoUser";
 
-        const [user] = await db.query("SELECT * FROM users WHERE email = ?", [email]);
+        const [user] = await db.query(
+          "SELECT * FROM users WHERE (provider = ? AND social_id = ?) OR email = ?",
+          ["kakao", kakaoId, email]
+        );
         if (user.length > 0) {
           // 기존 유저: 리프레시 토큰 갱신
           const refreshToken = jwt.sign({}, process.env.JWT_SECRET || "temp_secret", { expiresIn: "7d" });

@@ -7,6 +7,13 @@ import '../styles/dar.css';
 import "../styles/ProductDetailMain.css";
 import API_BASE from "../config/apiBase";
 
+// MySQL DATETIME 포맷으로 변환 (YYYY-MM-DD HH:MM:SS)
+const toMySQLDateTime = (value) => {
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toISOString().slice(0, 19).replace('T', ' ');
+};
+
 const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
     // 1. 상태 및 라우팅 관련 정의
     const [activeTab, setActiveTab] = useState('summary');
@@ -83,8 +90,10 @@ const ProductDetailMain = ({ favorites = [], toggleFavorite, userInfo }) => {
 
                         const currentHistory = await db.execute('SELECT scanned_at FROM scan_history WHERE user_id = ? ORDER BY scanned_at DESC', [userId]);
                         if (currentHistory.length > 20) {
-                            const thresholdTimestamp = currentHistory[19].scanned_at;
-                            await db.execute('DELETE FROM scan_history WHERE user_id = ? AND scanned_at < ?', [userId, thresholdTimestamp]);
+                            const thresholdTimestamp = toMySQLDateTime(currentHistory[19].scanned_at);
+                            if (thresholdTimestamp) {
+                                await db.execute('DELETE FROM scan_history WHERE user_id = ? AND scanned_at < ?', [userId, thresholdTimestamp]);
+                            }
                         }
                     } else {
                         console.log('로그인하지 않아 히스토리를 갱신하지 않습니다.');
